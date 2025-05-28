@@ -21,9 +21,9 @@ body {
 
 /* Navbar Styles */
 .navbar {
-    background: rgba(255, 255, 255, 0.95);
-    padding: 1.2rem 5%;
-    box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05);
+    background: rgba(255, 255, 255, 0.98);
+    padding: 1rem 4%;
+    box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
     position: fixed;
     width: 100%;
     top: 0;
@@ -35,7 +35,7 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    max-width: 1200px;
+    max-width: 1300px;
     margin: 0 auto;
 }
 
@@ -48,30 +48,27 @@ body {
 
 .nav-links {
     display: flex;
-    gap: 2rem;
+    gap: 1.8rem;
+    align-items: center;
 }
 
 .nav-links a {
     text-decoration: none;
     color: var(--text-color);
     font-weight: 500;
-    position: relative;
+    padding: 0.5rem 0.8rem;
+    border-radius: 8px;
     transition: var(--transition);
 }
 
+.nav-links a:hover {
+    background: rgba(79, 70, 229, 0.1);
+    color: var(--primary-color);
+}
+
+/* Remove the underline effect since we're using background hover */
 .nav-links a::after {
-    content: '';
-    position: absolute;
-    bottom: -5px;
-    left: 0;
-    width: 0;
-    height: 2px;
-    background: var(--primary-color);
-    transition: var(--transition);
-}
-
-.nav-links a:hover::after {
-    width: 100%;
+    display: none;
 }
 
 /* Hero Section */
@@ -196,15 +193,68 @@ footer p {
 
 /* Responsive Design */
 @media (max-width: 768px) {
-    .hero h1 {
-        font-size: 3rem;
+    .navbar {
+        padding: 1rem 3%;
     }
-    
-    .hero p {
-        font-size: 1.2rem;
-    }
-    
+
     .nav-links {
-        display: none;
+        gap: 1.2rem;
     }
+
+    .nav-links a {
+        font-size: 0.9rem;
+        padding: 0.4rem 0.6rem;
+    }
+
+    .logo {
+        font-size: 1.5rem;
+    }
+}
+
+@media (max-width: 600px) {
+    .nav-links {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: white;
+        padding: 1rem;
+        box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+        justify-content: space-around;
+        gap: 0.5rem;
+    }
+
+    .navbar {
+        padding: 0.8rem 3%;
+    }
+
+    .calendar, .productivity, .settings, .profile {
+        padding-bottom: 6rem;
+    }
+    
+    footer {
+        padding-bottom: 5rem;
+    }
+}
+
+/* Section Styles */
+.calendar, .productivity, .settings, .profile {
+    padding: 8rem 2rem;
+    background: var(--bg-light);
+}
+
+.calendar {
+    background: linear-gradient(to bottom, #ffffff, var(--bg-light));
+}
+
+.productivity {
+    background: linear-gradient(to bottom, var(--bg-light), #ffffff);
+}
+
+.settings {
+    background: linear-gradient(to bottom, #ffffff, var(--bg-light));
+}
+
+.profile {
+    background: linear-gradient(to bottom, var(--bg-light), #ffffff);
 } 
