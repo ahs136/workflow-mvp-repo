@@ -1,36 +1,52 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# WorkFlow MVP
 
-## Getting Started
+## 🧩 Overview
+A task management and calendar app to help users, specifically those with ADHD, organize their time and enhance their learning. Currently under active development as part of my summer 2025 coding project.
 
-First, run the development server:
+## 🚀 Features
+- Add/edit/delete tasks
+- Responsive UI built with React and Next.js
+- Custom calendar interface
+- AI-driven task suggestions (coming soon)
+- Speech-to-text integration to seamlessly edit calendar (coming soon)
+- Google Calendar sync (coming soon)
 
+## 🛠️ Tech Stack
+- Frontend: Next.js, React, TypeScript, Tailwind CSS
+- Backend: Node.js, Express, MongoDB
+- APIs: OpenAI, Google Calendar API
+
+## User Flow Prototype
+The user flow prototype outlines the planned user interactions and features. You can view the detailed user flow in the [User Flow Prototype](../docs/User%20Flow%20Prototype.txt).
+
+## 🧪 Status
+🟢 MVP in progress  
+🟡 AI & calendar integration coming soon
+
+## 📅 Weekly Log
+
+### Week 1 – May 19, 2025
+- Refreshed on HTML and CSS 
+- Refreshed Git and set up GitHub repo
+- Created initial project structure and landing page in Cursor 
+
+### Week 2 – May 26, 2025
+- Beginning JavaScript phase: learning core concepts, DOM manipulation
+- Setting up README and portfolio documentation
+- Finalized file structure and user flow
+- Preparing for frontend interactivity
+
+### Week 3 - June 2, 2025
+- Migrated to Next.js framework
+- Set up TypeScript and Tailwind CSS
+- Created component structure for the application
+
+## 📸 Screenshots
+(Coming soon)
+
+## 🔧 Installation
 ```bash
+git clone https://github.com/yourusername/workflow-mvp-repo.git
+cd workflow-mvp-repo/workflow-app
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
