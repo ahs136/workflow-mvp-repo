@@ -146,16 +146,16 @@ body {
 
 .features-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 2.5rem;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
     max-width: 1200px;
     margin: 0 auto;
 }
 
 .feature-card {
     background: white;
-    padding: 2.5rem;
-    border-radius: 20px;
+    padding: 2rem;
+    border-radius: 16px;
     box-shadow: 0 10px 30px rgba(0,0,0,0.05);
     transition: var(--transition);
     border: 1px solid rgba(0,0,0,0.05);
@@ -257,4 +257,17 @@ footer p {
 
 .profile {
     background: linear-gradient(to bottom, var(--bg-light), #ffffff);
+}
+
+/* Responsive adjustments for the grid */
+@media (max-width: 1024px) {
+    .features-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 600px) {
+    .features-grid {
+        grid-template-columns: 1fr;
+    }
 } 
