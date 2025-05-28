@@ -16,6 +16,9 @@ A task management and calendar app to help users, specifically those with ADHD, 
 - Backend: Node.js, Express, MongoDB
 - APIs: OpenAI, Google Calendar API
 
+## User Flow Prototype
+The user flow prototype outlines the planned user interactions and features. You can view the detailed user flow in the [User Flow Prototype](docs/User%20Flow%20Prototype.txt).
+
 ## 🧪 Status
 🟢 MVP in progress  
 🟡 AI & calendar integration coming soon
