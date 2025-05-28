@@ -39,7 +39,7 @@ A task management and calendar app to help users, specifically those with ADHD, 
 
 ## 🔧 Installation
 ```bash
-git clone https://github.com/yourusername/mvp-project.git
+git clone https://github.com/yourusername/workflow-mvp-repo.git
 cd workflow-mvp-repo
 npm install
 npm start
