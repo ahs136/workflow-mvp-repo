@@ -3,6 +3,15 @@
 ## Project Overview
 A task management and calendar app to help users, specifically those with ADHD, organize their time and enhance their learning. Currently under active development as part of my summer 2025 coding project.
 
+## 📂 Documentation
+
+You can find additional resources in the [`docs`](./docs) folder of this repository:
+
+- **Business Plan:** [docs/business-plan.md](./docs/business-plan.md)
+- **User Flow Prototype:** [docs/user-flow-prototype.md](./docs/user-flow-prototype.md)
+
+Feel free to explore these documents for a deeper understanding of the project's vision and user experience!
+
 ## 🛠️ Tech Stack
 
 This project leverages a modern web development stack to ensure scalability, maintainability, and a smooth developer experience:
