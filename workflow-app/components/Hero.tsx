@@ -23,7 +23,7 @@ export default function Hero() {
           Transform Your Workflow
         </h1>
         <p className="text-xl md:text-2xl text-white/90 mb-12 max-w-[600px] mx-auto">
-          Streamline your processes and boost productivity with our innovative platform
+          Declutter your mind and boost your productivity with AI-driven tools that revolutionize task management through user-centric design
         </p>
         <Link
           href="/home"
