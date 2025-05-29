@@ -3,6 +3,21 @@
 ## Project Overview
 A task management and calendar app to help users, specifically those with ADHD, organize their time and enhance their learning. Currently under active development as part of my summer 2025 coding project.
 
+## 🛠️ Tech Stack
+
+This project leverages a modern web development stack to ensure scalability, maintainability, and a smooth developer experience:
+
+- **Next.js** – React framework for server-side rendering, routing, and API routes
+- **React.js** – Component-based UI development
+- **TypeScript** – Type-safe JavaScript for improved reliability
+- **Tailwind CSS** – Utility-first CSS framework for rapid UI development
+- **Node.js & npm** – JavaScript runtime and package management
+- **Git & GitHub** – Version control and collaboration
+
+Planned integrations:
+- **AI features** (coming soon)
+- **Calendar API integration** (coming soon)
+
 ## 🧪 Status
 🟢 MVP in progress  
 🟡 AI & calendar integration coming soon
