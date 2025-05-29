@@ -7,8 +7,8 @@ A task management and calendar app to help users, specifically those with ADHD, 
 
 You can find additional resources in the [`docs`](./docs) folder of this repository:
 
-- **Business Plan:** [docs/business-plan.md](./docs/business-plan.md)
-- **User Flow Prototype:** [docs/user-flow-prototype.md](./docs/user-flow-prototype.md)
+- **Business Plan:** [docs/WorkFlow AI Business Plan (for investors).docx (1).pdf](./docs/WorkFlow%20AI%20Business%20Plan%20(for%20investors).docx%20(1).pdf)
+- **User Flow Prototype:** [docs/User Flow Prototype.txt](./docs/User%20Flow%20Prototype.txt)
 
 Feel free to explore these documents for a deeper understanding of the project's vision and user experience!
 
