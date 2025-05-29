@@ -1,0 +1,58 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-primary: #4f46e5;
+    --color-secondary: #6366f1;
+    --color-text: #333;
+    --color-bg-light: #f8fafc;
+  }
+
+  body {
+    @apply text-[#333] leading-relaxed;
+    font-family: 'Inter', 'Segoe UI', sans-serif;
+  }
+}
+
+@keyframes pulse {
+  0% { 
+    transform: scale(1) translate(-15%, -15%); 
+    opacity: 0.5; 
+  }
+  50% { 
+    transform: scale(1.5) translate(-15%, -15%); 
+    opacity: 0.8; 
+  }
+  100% { 
+    transform: scale(1) translate(-15%, -15%); 
+    opacity: 0.5; 
+  }
+}
+
+.animate-pulse {
+  animation: pulse 8s infinite;
+}
+
+/* Base styles */
+body {
+  @apply text-gray-900 bg-gray-50;
+}
+
+/* Typography */
+h1, h2, h3, h4, h5, h6 {
+  @apply font-bold tracking-tight;
+}
+
+/* Custom utilities */
+.text-balance {
+  text-wrap: balance;
+}
+
+/* Mobile navigation padding adjustment */
+@media (max-width: 768px) {
+  .main-content {
+    padding-bottom: 5rem;
+  }
+}
