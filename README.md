@@ -33,23 +33,32 @@ Planned integrations:
 
 ## 📅 Weekly Log
 
-### Week 1 – May 19, 2025
+### Week 1 – May 26, 2025
 - Refreshed on HTML and CSS 
 - Refreshed Git and set up GitHub repo
 - Created initial project structure and landing page in Cursor 
 
-### Week 2 – May 26, 2025
+### Week 2 – June 2, 2025
 - Beginning JavaScript phase: learning core concepts, DOM manipulation
 - Setting up README and portfolio documentation
 - Finalized file structure and user flow
 - Preparing for frontend interactivity
 - Migrated to Next.js framework
 
-### Week 3 - June 2, 2025
+### Week 3 - June 9, 2025
 - Learning React.js components and framework
-- Learning Next.js for project structure, routing, and APIs
 - Set up TypeScript and Tailwind CSS
 - Created component structure for the application
+- Pausing MVP development until confident with React.js and Next.js
+
+### Week 4 - June 16, 2025
+- Deeepdive in React:
+  - props
+  - state
+  - conditional rendering
+  - controlled form inputs
+- Beginning to learn Next.js for project structure, routing, and APIs
+
 
 ## 📸 Screenshots
 (Coming soon)
