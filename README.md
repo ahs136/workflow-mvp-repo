@@ -57,6 +57,8 @@ Planned integrations:
   - state
   - conditional rendering
   - controlled form inputs
+  - side effects
+  - dependencies
 - Beginning to learn Next.js for project structure, routing, and APIs
 
 
