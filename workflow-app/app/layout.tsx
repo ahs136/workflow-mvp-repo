@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import '../styles/fullcalendar-daygrid.css';
+import '../styles/fullcalendar-timegrid.css';
+
 
 const inter = Inter({
   subsets: ["latin"],

@@ -38,6 +38,10 @@
 /* Base styles */
 body {
   @apply text-gray-900 bg-gray-50;
+  /* Removed color & background gradient using CSS variables */
+  /* Set static colors instead */
+  color: #333333;
+  background-color: #f8fafc;
 }
 
 /* Typography */
@@ -56,3 +60,5 @@ h1, h2, h3, h4, h5, h6 {
     padding-bottom: 5rem;
   }
 }
+
+/* Removed dark mode CSS variables and media queries */

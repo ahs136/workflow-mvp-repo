@@ -1,0 +1,52 @@
+/* FullCalendar v6.1.18 daygrid extended CSS - shows dates, numbers, and grid */
+
+.fc {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 14px;
+    direction: ltr;
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  .fc .fc-daygrid-day {
+    border: 1px solid #ddd;
+    min-height: 80px;
+    vertical-align: top;
+    padding: 5px;
+    position: relative;
+    cursor: pointer;
+    background: white;
+  }
+  
+  .fc .fc-daygrid-day-top {
+    font-weight: bold;
+    font-size: 12px;
+    line-height: 1.5em;
+    margin-bottom: 4px;
+    text-align: right;
+    color: #666;
+  }
+  
+  .fc .fc-daygrid-day-number {
+    float: right;
+    font-weight: bold;
+    padding: 2px 4px;
+    background: #eaeaea;
+    border-radius: 3px;
+    color: #333;
+  }
+  
+  .fc .fc-daygrid-body {
+    border-top: none;
+  }
+  
+  .fc .fc-daygrid-event {
+    background-color: #3788d8;
+    color: white;
+    border-radius: 3px;
+    padding: 2px 4px;
+    margin-bottom: 2px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  
