@@ -1,0 +1,126 @@
+/* @fullcalendar/common v6.1.8 - fullcalendar.io */
+.fc {
+    direction: ltr;
+    text-align: left;
+  }
+  
+  .fc-theme-standard .fc-scrollgrid {
+    border: 1px solid #ddd;
+  }
+  
+  .fc-theme-standard td,
+  .fc-theme-standard th {
+    border: 1px solid #ddd;
+  }
+  
+  .fc-theme-standard .fc-scrollgrid-section-footer td,
+  .fc-theme-standard .fc-scrollgrid-section-footer th {
+    border-top-width: 0;
+  }
+  
+  .fc-theme-standard .fc-scrollgrid-section-header td,
+  .fc-theme-standard .fc-scrollgrid-section-header th {
+    border-bottom-width: 0;
+  }
+  
+  .fc .fc-daygrid-event {
+    margin-top: 1px;
+  }
+  
+  .fc .fc-daygrid-event.fc-event-start,
+  .fc .fc-daygrid-event.fc-event-end {
+    margin-top: 2px;
+  }
+  
+  .fc-event {
+    background-color: #3788d8;
+    border: 1px solid #3788d8;
+    color: #fff;
+    font-size: 0.85em;
+    padding: 2px 4px;
+    border-radius: 3px;
+  }
+  
+  .fc-event-time {
+    font-weight: bold;
+  }
+  
+  .fc-timegrid-event {
+    border-radius: 3px;
+    padding: 2px;
+    background-color: #3788d8;
+    color: #fff;
+    border: 1px solid #3788d8;
+    overflow: hidden;
+  }
+  
+  .fc-timegrid-event .fc-event-main {
+    white-space: normal;
+  }
+  
+  .fc .fc-toolbar-title {
+    font-size: 1.25em;
+    margin: 0;
+  }
+  
+  .fc-theme-standard .fc-list {
+    border: 1px solid #ddd;
+  }
+  
+  .fc-theme-standard .fc-list-item {
+    border-top: 1px solid #ddd;
+  }
+  
+  .fc-theme-standard .fc-list-day-cushion {
+    background-color: #f5f5f5;
+  }
+  
+  .fc .fc-button {
+    background: #3788d8;
+    border: 1px solid #3788d8;
+    color: #fff;
+    padding: 0.4em 0.65em;
+    margin: 0 0.25em;
+    border-radius: 0.25em;
+    cursor: pointer;
+  }
+  
+  .fc .fc-button:hover {
+    background: #2c6fb7;
+    border-color: #2c6fb7;
+  }
+  
+  .fc .fc-button:disabled {
+    background: #ccc;
+    border-color: #ccc;
+    cursor: not-allowed;
+  }
+  
+  .fc .fc-highlight {
+    background: rgba(56, 88, 145, 0.2);
+  }
+  
+  .fc .fc-now-indicator {
+    border-top: 2px solid red;
+  }
+  
+  .fc .fc-col-header-cell-cushion,
+  .fc .fc-daygrid-day-number,
+  .fc .fc-list-day-text,
+  .fc .fc-list-day-side-text {
+    padding: 4px;
+    display: inline-block;
+  }
+  
+  .fc .fc-daygrid-day.fc-day-today {
+    background: #f0f8ff;
+  }
+  
+  .fc .fc-timegrid-col.fc-day-today {
+    background: #f0f8ff;
+  }
+  
+  .fc .fc-daygrid-day-events {
+    margin-top: 2px;
+  }
+  

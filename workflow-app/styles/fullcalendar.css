@@ -1,0 +1,69 @@
+/* == FULLCALENDAR CORE (v6) == */
+.fc {
+    direction: ltr;
+    text-align: left;
+  }
+  .fc .fc-event {
+    cursor: pointer;
+    display: block;
+    font-size: 0.85em;
+    line-height: 1.3;
+    border-radius: 3px;
+    border: 1px solid #3788d8;
+    background-color: #3788d8;
+    color: white;
+    padding: 2px 4px;
+  }
+  .fc .fc-event-time {
+    font-weight: bold;
+  }
+  .fc .fc-timegrid-event {
+    position: absolute;
+    z-index: 1;
+  }
+  .fc-timegrid-event-harness {
+    position: absolute;
+    z-index: 1;
+    width: 100%;
+  }
+  .fc-v-event {
+    position: absolute;
+    z-index: 1;
+    border: none;
+    box-sizing: border-box;
+  }
+  .fc-event-main {
+    padding: 2px;
+  }
+  .fc-timegrid-slot-label {
+    white-space: nowrap;
+    text-align: right;
+    padding-right: 4px;
+  }
+  .fc-timegrid-slot {
+    height: 1.5em;
+    border-bottom: 1px solid #ddd;
+  }
+  .fc-timegrid-cols {
+    display: grid;
+    grid-template-columns: auto 1fr;
+  }
+  .fc-timegrid-col {
+    position: relative;
+    border-left: 1px solid #ddd;
+  }
+  .fc-timegrid-slots {
+    position: relative;
+  }
+  .fc-scrollgrid-sync-table {
+    width: 100%;
+    table-layout: fixed;
+  }
+  
+  /* Handle vertical event height properly */
+  .fc-timegrid-event-harness {
+    top: var(--fc-event-top);
+    bottom: var(--fc-event-bottom);
+    height: auto !important;
+  }
+  

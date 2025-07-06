@@ -1,0 +1,48 @@
+/* fullcalendar-theme.css */
+.fc-theme-standard .fc-scrollgrid {
+    border: 1px solid #ddd;
+  }
+  
+  .fc-theme-standard td,
+  .fc-theme-standard th {
+    border: 1px solid #ddd;
+  }
+  
+  .fc-theme-standard .fc-scrollgrid-section-header td,
+  .fc-theme-standard .fc-scrollgrid-section-header th {
+    border-bottom-width: 0;
+  }
+  
+  .fc-theme-standard .fc-scrollgrid-section-footer td,
+  .fc-theme-standard .fc-scrollgrid-section-footer th {
+    border-top-width: 0;
+  }
+  
+  .fc-event {
+    background-color: #3788d8;
+    border: 1px solid #3788d8;
+    color: white;
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-size: 0.85em;
+    overflow: hidden;
+  }
+  
+  .fc-timegrid-event {
+    border-radius: 3px;
+    padding: 2px;
+    background-color: #3788d8;
+    color: #fff;
+    border: 1px solid #3788d8;
+    overflow: hidden;
+  }
+  
+  .fc .fc-daygrid-day.fc-day-today,
+  .fc .fc-timegrid-col.fc-day-today {
+    background-color: #f0f8ff;
+  }
+  
+  .fc-timegrid-event .fc-event-main {
+    white-space: normal;
+  }
+  

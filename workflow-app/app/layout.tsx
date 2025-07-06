@@ -3,6 +3,9 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import '../styles/fullcalendar-daygrid.css';
 import '../styles/fullcalendar-timegrid.css';
+import '../styles/fullcalendar-common.css';
+import '../styles/fullcalendar-theme.css';
+import '../styles/fullcalendar.css';
 
 
 const inter = Inter({
