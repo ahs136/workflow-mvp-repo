@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Calendar from '@/components/Calendar/Calendar';
-import AppNavbar from '@/components/AppNavbar';
+import AppNavbar from '@/components/layout/AppNavbar';
 
 export default function CalendarPage() {
   return (

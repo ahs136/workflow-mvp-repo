@@ -1,6 +1,6 @@
 'use client';
 
-import AppNavbar from '@/components/AppNavbar';
+import AppNavbar from '@/components/layout/AppNavbar';
 
 export default function HomePage() {
   return (

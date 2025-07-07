@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import "./globals.css";
+import "../styles/globals.css";
 import '../styles/fullcalendar-daygrid.css';
 import '../styles/fullcalendar-timegrid.css';
 import '../styles/fullcalendar-common.css';
