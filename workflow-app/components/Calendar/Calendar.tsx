@@ -14,6 +14,8 @@ export default function Calendar() {
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
+  const [calendarHeight, setCalendarHeight] = useState(650); // default height
+
 
   const [formData, setFormData] = useState({
     title: '',
@@ -26,6 +28,13 @@ export default function Calendar() {
   });
 
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setCalendarHeight(window.innerHeight * 0.7); 
+    }
+  }, []);
+  
+
+  useEffect(() => {
     const stored = localStorage.getItem('calendarEvents');
     if (stored) setEvents(JSON.parse(stored));
   }, []);
@@ -36,7 +45,9 @@ export default function Calendar() {
 
   const formatDateForInput = (date: Date) => {
     const pad = (n: number) => String(n).padStart(2, '0');
-    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(
+      date.getHours()
+    )}:${pad(date.getMinutes())}`;
   };
 
   const resetForm = () => {
@@ -71,8 +82,14 @@ export default function Calendar() {
     setSelectedEvent(event);
     setFormData({
       title: event.title as string,
-      start: typeof event.start === 'string' ? event.start : formatDateForInput(new Date(event.start as any)),
-      end: event.end ? (typeof event.end === 'string' ? event.end : formatDateForInput(new Date(event.end as any))) : '',
+      start:
+        typeof event.start === 'string' ? event.start : formatDateForInput(new Date(event.start as any)),
+      end:
+        event.end
+          ? typeof event.end === 'string'
+            ? event.end
+            : formatDateForInput(new Date(event.end as any))
+          : '',
       location: event.extendedProps?.location || '',
       reminder: event.extendedProps?.reminder || 'none',
       tag: event.extendedProps?.tag || 'general',
@@ -121,7 +138,7 @@ export default function Calendar() {
   };
 
   return (
-    <div className="relative w-full p-4 bg-white rounded-lg shadow-lg min-h-screen">
+    <div className="relative w-full p-4 bg-white rounded-lg shadow-lg h-[650px] flex flex-col">
       {/* Add Event Button */}
       <div className="flex justify-end mb-4">
         <button
@@ -135,13 +152,49 @@ export default function Calendar() {
         </button>
       </div>
 
+      {/* Calendar Component */}
+      <div className="flex-1">
+      <FullCalendar
+        plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+        headerToolbar={{
+          left: 'prev,next today',
+          center: 'title',
+          right: 'dayGridMonth,timeGridWeek,timeGridDay',
+        }}
+        initialView="dayGridMonth"
+        selectable={true}
+        selectMirror={true}
+        select={handleDateSelect}
+        eventClick={handleEventClick}
+        events={events}
+        ref={calendarRef}
+        datesSet={handleDatesSet}
+        eventColor="#3788d8"
+        height={calendarHeight} 
+        views={{
+          timeGridWeek: {
+            minTime: '08:00:00',
+            maxTime: '20:00:00',
+            allDaySlot: false,
+          },
+          timeGridDay: {
+            minTime: '08:00:00',
+            maxTime: '20:00:00',
+            allDaySlot: false,
+          },
+        }}
+      />
+
+      </div>
+
       {/* Modal Form */}
       {isFormOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50">
           <div className="bg-white p-6 rounded-lg w-full max-w-md shadow-lg">
             <h2 className="text-xl font-bold mb-4">{selectedEvent ? 'Edit Event' : 'Add Event'}</h2>
             <form onSubmit={handleFormSubmit} className="space-y-4">
-              {[
+              {/* ... your form inputs (same as before) ... */}
+              {[ 
                 { label: 'Event Name *', value: formData.title, key: 'title', required: true },
                 { label: 'Start Time *', value: formData.start, key: 'start', type: 'datetime-local', required: true },
                 { label: 'End Time (optional)', value: formData.end, key: 'end', type: 'datetime-local' },
@@ -223,46 +276,6 @@ export default function Calendar() {
           </div>
         </div>
       )}
-
-      {/* Calendar Container */}
-      <div className="rounded border border-gray-300 shadow-md">
-        <div className="max-h-[800px] overflow-y-auto">
-          <FullCalendar
-            ref={calendarRef}
-            plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-            headerToolbar={{
-              left: 'prev,next today',
-              center: 'title',
-              right: 'dayGridMonth,timeGridWeek,timeGridDay',
-            }}
-            initialView="timeGridWeek"
-            editable
-            selectable
-            selectMirror
-            weekends
-            events={events}
-            select={handleDateSelect}
-            eventClick={handleEventClick}
-            height="auto"
-            datesSet={handleDatesSet}
-            slotDuration="01:00:00"
-            scrollTime="08:00:00"  // <--- make sure this is here!
-            slotLabelFormat={{ hour: 'numeric', minute: '2-digit', hour12: true }}
-            views={{
-              timeGridWeek: {
-                minTime: '00:00:00',
-                maxTime: '24:00:00',
-                allDaySlot: false,
-              },
-              timeGridDay: {
-                minTime: '00:00:00',
-                maxTime: '24:00:00',
-                allDaySlot: false,
-              },
-            }}
-          />
-        </div>
-      </div>
-    </div>  
+    </div>
   );
-} 
+}
