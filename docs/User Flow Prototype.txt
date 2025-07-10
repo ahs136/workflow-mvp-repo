@@ -9,9 +9,12 @@
       3. Optional: Users can link their OpenAI account if desired, but if not, you can still store and manage their preferences in your backend.
 2. Home
    1. Lists major events for today and tomorrow
-   2. Reminders for the day (will have a proper noti at specified time)
-   3. Live activity tracking for upcoming events
-   4. Overall productivity analytics
+   2. Weekly skeleton - non negotiable recurring events, ai can build around them or intuitively offer rescheduling of your staple events
+   3. Reminders for the day (will have a proper noti at specified time)
+   4. Live activity tracking for upcoming events
+   5. Overall productivity analytics
+   6. AI input assistant
+   7. Weekly Insights - trends with different event tags (manage stress and overload)
 3. Task Creation
    1. Hit the plus button (smartly located)
       1. Text box or audio button
