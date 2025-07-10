@@ -122,6 +122,7 @@ export default function Calendar() {
       start: new Date(formData.start),
       end: formData.end ? new Date(formData.end) : undefined,
       backgroundColor: formData.color,
+      color: '#fff',
       extendedProps: {
         description: formData.description,
         location: formData.location,
@@ -155,7 +156,8 @@ export default function Calendar() {
     const description = event.extendedProps.description || '';
     const title = event.title || '';
     const tag = event.extendedProps.tag || 'general';
-    const color = event.extendedProps.color || '#3b82f6';
+    const bgColor = event.backgroundColor || '#3b82f6';
+    const textColor = event.textColor || '#fff';
   
     const formatTime = (date: Date | null) => {
       if (!date) return '';
@@ -167,17 +169,25 @@ export default function Calendar() {
     const timeRange = endTimeStr ? `${startTimeStr} - ${endTimeStr}` : startTimeStr;
   
     return (
-      <div style={{ display: 'flex', flexDirection: 'column' }}>
+      <div
+        style={{
+          backgroundColor: bgColor,
+          color: textColor,
+          padding: '4px 6px',
+          borderRadius: '6px',
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
           {startTimeStr && (
-            <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#fff' }}>{timeRange}</div>
+            <div style={{ fontSize: '0.8rem', fontWeight: 600 }}>{timeRange}</div>
           )}
           <div
             style={{
               fontSize: '0.65rem',
               fontWeight: 500,
               backgroundColor: '#ffffff50',
-              color: '#fff',
               padding: '0 6px',
               borderRadius: '6px',
               marginLeft: 'auto',
@@ -187,13 +197,12 @@ export default function Calendar() {
             {tag}
           </div>
         </div>
-        <div style={{ fontSize: '1rem', fontWeight: 600, color: '#fff' }}>{title}</div>
+        <div style={{ fontSize: '1rem', fontWeight: 600 }}>{title}</div>
         {description && (
           <div
             style={{
               fontSize: '0.7rem',
               fontWeight: 400,
-              color: '#ddd',
               whiteSpace: 'nowrap',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
@@ -206,7 +215,7 @@ export default function Calendar() {
       </div>
     );
   }
-
+  
 
   //  DOM Rendering
   return (
@@ -257,7 +266,6 @@ export default function Calendar() {
           events={selectedTag === 'all' ? events : events.filter(ev => ev.extendedProps?.tag === selectedTag)}
           ref={calendarRef}
           datesSet={handleDatesSet}
-          eventColor="#3788d8"
           height={calendarHeight}
           views={{
             timeGridWeek: {

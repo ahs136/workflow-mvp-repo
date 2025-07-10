@@ -61,5 +61,8 @@ h1, h2, h3, h4, h5, h6 {
   }
 }
 
-/* Removed dark mode CSS variables and media queries */
-
+/* Fix for background color not applying in month view */
+.fc-daygrid-event {
+  background-color: inherit !important;
+  color: inherit !important;
+}
