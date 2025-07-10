@@ -375,122 +375,136 @@ function scheduleReminder(event: EventInput) {
         <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50">
           <div className="bg-white p-6 rounded-lg w-full max-w-4xl shadow-lg">
             <h2 className="text-xl font-bold mb-4">{selectedEvent ? 'Edit Event' : 'Add Event'}</h2>
-            <form id="event-form" onSubmit={handleFormSubmit} className="flex gap-6">
+            <form id="event-form" onSubmit={handleFormSubmit} className="flex gap-6 flex-col">
               {/* Left Column */}
-              <div className="flex-1 space-y-4">
-                {[
-                  { label: 'Event Name *', value: formData.title, key: 'title', required: true },
-                  { label: 'Event Description', value: formData.description, key: 'description' },
-                  { label: 'Start Time *', value: formData.start, key: 'start', type: 'datetime-local', required: true },
-                  { label: 'End Time (optional)', value: formData.end, key: 'end', type: 'datetime-local' },
-                ].map(({ label, value, key, required, type }) => (
-                  <div key={key}>
-                    <label className="block mb-1 font-medium">{label}</label>
+              <div className="flex space-x-6">
+                <div className="flex-1 space-y-4">
+                  {[
+                    { label: 'Event Name *', value: formData.title, key: 'title', required: true },
+                    { label: 'Event Description', value: formData.description, key: 'description' },
+                    { label: 'Start Time *', value: formData.start, key: 'start', type: 'datetime-local', required: true },
+                    { label: 'End Time (optional)', value: formData.end, key: 'end', type: 'datetime-local' },
+                  ].map(({ label, value, key, required, type }) => (
+                    <div key={key}>
+                      <label className="block mb-1 font-medium">{label}</label>
+                      <input
+                        type={type || 'text'}
+                        className="w-full border border-gray-300 rounded p-2"
+                        value={value}
+                        onChange={e => setFormData({ ...formData, [key]: e.target.value })}
+                        required={required}
+                      />
+                    </div>
+                  ))}
+                </div>
+  
+                {/* Right Column */}
+                <div className="flex-1 space-y-4">
+                  {/* Location */}
+                  <div>
+                    <label className="block mb-1 font-medium">Location</label>
                     <input
-                      type={type || 'text'}
+                      type="text"
                       className="w-full border border-gray-300 rounded p-2"
-                      value={value}
-                      onChange={e => setFormData({ ...formData, [key]: e.target.value })}
-                      required={required}
+                      value={formData.location}
+                      onChange={e => setFormData({ ...formData, location: e.target.value })}
                     />
                   </div>
-                ))}
+  
+                  {/* Reminder */}
+                  <div>
+                    <label className="block mb-1 font-medium">Reminder</label>
+                    <select
+                      className="w-full border border-gray-300 rounded p-2"
+                      value={formData.reminder}
+                      onChange={e => setFormData({ ...formData, reminder: e.target.value })}
+                    >
+                      {['none', '10m', '1h', '1d', '2d'].map(val => (
+                        <option key={val} value={val}>
+                          {val === 'none' ? 'None' : `${val.replace('m', ' minutes').replace('h', ' hour').replace('d', ' day')} before`}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+  
+                  {/* Tag */}
+                  <div>
+                    <label className="block mb-1 font-medium">Tag</label>
+                    <select
+                      className="w-full border border-gray-300 rounded p-2"
+                      value={formData.tag}
+                      onChange={e => {
+                        const newTag = e.target.value;
+                        const defaultColor = defaultTagColors[newTag];
+                        setFormData(prev => ({
+                          ...prev,
+                          tag: newTag,
+                          color: prev.color === defaultTagColors[prev.tag] ? defaultColor : prev.color,
+                        }));
+                      }}
+                    >
+                      {['general', 'focus', 'meeting', 'workout', 'personal'].map(tag => (
+                        <option key={tag} value={tag}>
+                          {tag.charAt(0).toUpperCase() + tag.slice(1)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+  
+                  {/* Color */}
+                  <div>
+                    <label className="block mb-1 font-medium">Color</label>
+                    <input
+                      type="color"
+                      className="w-full border border-gray-300 rounded p-2 h-10"
+                      value={formData.color}
+                      onChange={e => setFormData({ ...formData, color: e.target.value })}
+                    />
+                  </div>
+  
+                  {/* Recurrence coming soon */}
+                  <div>
+                    <label className="block mb-1 font-medium" htmlFor="recurrence-coming-soon">
+                      Recurrence (coming soon)
+                    </label>
+                    <input
+                      id="recurrence-coming-soon"
+                      type="checkbox"
+                      disabled
+                      className="cursor-not-allowed"
+                    />
+                  </div>
+                </div>
               </div>
   
-              {/* Right Column */}
-              <div className="flex-1 space-y-4">
-                {/* Location */}
-                <div>
-                  <label className="block mb-1 font-medium">Location</label>
-                  <input
-                    type="text"
-                    className="w-full border border-gray-300 rounded p-2"
-                    value={formData.location}
-                    onChange={e => setFormData({ ...formData, location: e.target.value })}
-                  />
-                </div>
-  
-                {/* Reminder */}
-                <div>
-                  <label className="block mb-1 font-medium">Reminder</label>
-                  <select
-                    className="w-full border border-gray-300 rounded p-2"
-                    value={formData.reminder}
-                    onChange={e => setFormData({ ...formData, reminder: e.target.value })}
+              {/* Modal Buttons */}
+              <div className="flex justify-between pt-4">
+                {selectedEvent && (
+                  <button
+                    type="button"
+                    onClick={handleDelete}
+                    className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
                   >
-                    {['none', '10m', '1h', '1d', '2d'].map(val => (
-                      <option key={val} value={val}>
-                        {val === 'none' ? 'None' : `${val.replace('m', ' minutes').replace('h', ' hour').replace('d', ' day')} before`}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-  
-                {/* Tag */}
-                <div>
-                  <label className="block mb-1 font-medium">Tag</label>
-                  <select
-                    className="w-full border border-gray-300 rounded p-2"
-                    value={formData.tag}
-                    onChange={e => {
-                      const newTag = e.target.value;
-                      const defaultColor = defaultTagColors[newTag];
-                      setFormData(prev => ({
-                        ...prev,
-                        tag: newTag,
-                        color: prev.color === defaultTagColors[prev.tag] ? defaultColor : prev.color,
-                      }));
-                    }}
+                    Delete
+                  </button>
+                )}
+                <div className="flex gap-2 ml-auto">
+                  <button
+                    type="button"
+                    onClick={resetForm}
+                    className="bg-gray-300 text-black px-4 py-2 rounded hover:bg-gray-400"
                   >
-                    {['general', 'focus', 'meeting', 'workout', 'personal'].map(tag => (
-                      <option key={tag} value={tag}>
-                        {tag.charAt(0).toUpperCase() + tag.slice(1)}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-  
-                {/* Color */}
-                <div>
-                  <label className="block mb-1 font-medium">Color</label>
-                  <input
-                    type="color"
-                    className="w-full border border-gray-300 rounded p-2 h-10"
-                    value={formData.color}
-                    onChange={e => setFormData({ ...formData, color: e.target.value })}
-                  />
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                  >
+                    Save
+                  </button>
                 </div>
               </div>
             </form>
-  
-            {/* Modal Buttons */}
-            <div className="flex justify-between pt-4">
-              {selectedEvent && (
-                <button
-                  type="button"
-                  onClick={handleDelete}
-                  className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
-                >
-                  Delete
-                </button>
-              )}
-              <div className="flex gap-2 ml-auto">
-                <button
-                  type="button"
-                  onClick={resetForm}
-                  className="bg-gray-300 text-black px-4 py-2 rounded hover:bg-gray-400"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  form="event-form"
-                  className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-                >
-                  Save
-                </button>
-              </div>
-            </div>
           </div>
         </div>
       )}
