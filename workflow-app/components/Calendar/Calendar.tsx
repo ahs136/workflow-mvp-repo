@@ -60,6 +60,38 @@ export default function Calendar() {
     }
   }, []);
 
+  // Schedule reminder
+function scheduleReminder(event: EventInput) {
+    if (!('Notification' in window)) return;
+    if (Notification.permission !== 'granted') return;
+
+    const reminderMap: Record<string, number> = {
+      none: 0,
+      '10m': 10 * 60 * 1000,
+      '1h': 60 * 60 * 1000,
+      '1d': 24 * 60 * 60 * 1000,
+      '2d': 2 * 24 * 60 * 60 * 1000,
+    };
+
+    const reminderBefore = reminderMap[event.extendedProps?.reminder || 'none'];
+    if (!reminderBefore || !event.start) return;
+
+    const eventStartTime = new Date(event.start).getTime();
+    const notifyTime = eventStartTime - reminderBefore;
+    const now = Date.now();
+
+    const delay = notifyTime - now;
+
+    if (delay <= 0) return; // Event is soon or past, no reminder
+
+    setTimeout(() => {
+      new Notification(`Reminder: ${event.title}`, {
+        body: `Starts at ${new Date(event.start).toLocaleString()}`,
+        // icon: '/path/to/icon.png', // optional
+      });
+    }, 3000);
+  }
+
   const formatDateForInput = (date: Date) => {
     const pad = (n: number) => String(n).padStart(2, '0');
     return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(
@@ -146,6 +178,8 @@ export default function Calendar() {
       saveEventsToLocalStorage(updated); // save here
       return updated;
     });
+    // Send notification
+    scheduleReminder(newEvent);
     // Reset form
     resetForm();
   };
@@ -165,6 +199,30 @@ export default function Calendar() {
   const handleDatesSet = (arg: DatesSetArg) => {
     setCurrentDate(arg.start);
   };
+
+  // Handle event drag and drop
+  const handleEventDrop = (info: any) => {
+    const updatedEvent: EventInput = {
+      id: info.event.id,
+      title: info.event.title,
+      start: info.event.start,
+      end: info.event.end,
+      backgroundColor: info.event.backgroundColor,
+      color: info.event.textColor || '#fff',
+      extendedProps: {
+        ...info.event.extendedProps,
+      },
+    };
+  
+    const updatedEvents = events.map(ev =>
+      ev.id === info.event.id ? updatedEvent : ev
+    );
+  
+    setEvents(updatedEvents);
+    saveEventsToLocalStorage(updatedEvents);
+    scheduleReminder(updatedEvent); 
+  };
+  
 
   // Save events to local storage
   function saveEventsToLocalStorage(events: EventInput[]) {
@@ -289,6 +347,8 @@ export default function Calendar() {
           selectable={true}
           selectMirror={true}
           select={handleDateSelect}
+          editable={true}
+          eventDrop={handleEventDrop}
           eventClick={handleEventClick}
           events={selectedTag === 'all' ? events : events.filter(ev => ev.extendedProps?.tag === selectedTag)}
           ref={calendarRef}
