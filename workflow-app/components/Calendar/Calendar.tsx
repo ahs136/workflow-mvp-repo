@@ -41,16 +41,24 @@ export default function Calendar() {
     if (typeof window !== 'undefined') {
       setCalendarHeight(window.innerHeight * 0.7);
     }
+    // Request notification permission
+    if ('Notification' in window && Notification.permission !== 'granted') {
+      Notification.requestPermission();
+    }
   }, []);
+
 
   useEffect(() => {
     const stored = localStorage.getItem('calendarEvents');
-    if (stored) setEvents(JSON.parse(stored));
+    if (stored) {
+      const parsedEvents = JSON.parse(stored).map((event: any) => ({
+        ...event,
+        start: new Date(event.start),
+        end: event.end ? new Date(event.end) : undefined,
+      }));
+      setEvents(parsedEvents);
+    }
   }, []);
-
-  useEffect(() => {
-    localStorage.setItem('calendarEvents', JSON.stringify(events));
-  }, [events]);
 
   const formatDateForInput = (date: Date) => {
     const pad = (n: number) => String(n).padStart(2, '0');
@@ -110,12 +118,12 @@ export default function Calendar() {
   };
 
   const handleFormSubmit = (e: any) => {
-    e.preventDefault();
+    e.preventDefault(); // prevent default form submission
     if (!formData.title || !formData.start) {
       alert('Title and start time are required');
       return;
     }
-
+    // Create new event
     const newEvent: EventInput = {
       id: selectedEvent?.id || String(Date.now()),
       title: formData.title,
@@ -131,25 +139,44 @@ export default function Calendar() {
         color: formData.color,
       },
     };
-
+    // Update events in local storage
     setEvents(prev => {
       const filtered = selectedEvent ? prev.filter(ev => ev.id !== selectedEvent.id) : prev;
-      return [...filtered, newEvent];
+      const updated = [...filtered, newEvent];
+      saveEventsToLocalStorage(updated); // save here
+      return updated;
     });
-
+    // Reset form
     resetForm();
   };
 
+  // Delete event
   const handleDelete = () => {
-    if (!selectedEvent) return;
-    setEvents(events.filter(event => event.id !== selectedEvent.id));
-    resetForm();
-  };
+    const updated = events.filter(event => event.id !== selectedEvent.id);
+  setEvents(updated);
+  saveEventsToLocalStorage(updated); // save here
+  resetForm();
+  }
+    // if (!selectedEvent) return;
+    // setEvents(events.filter(event => event.id !== selectedEvent.id));
+    // resetForm();
+  // };
 
   const handleDatesSet = (arg: DatesSetArg) => {
     setCurrentDate(arg.start);
   };
 
+  // Save events to local storage
+  function saveEventsToLocalStorage(events: EventInput[]) {
+    const cleaned = events.map(ev => ({
+      ...ev,
+      start: (ev.start instanceof Date) ? ev.start.toISOString() : ev.start,
+      end: (ev.end instanceof Date) ? ev.end.toISOString() : ev.end,
+    }));
+    localStorage.setItem('calendarEvents', JSON.stringify(cleaned));
+  }
+
+  
   // Custom event rendering showing time, title, description
   function renderEventContent(eventInfo: any) {
     const { event } = eventInfo;
