@@ -15,6 +15,16 @@ export default function Calendar() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
   const [calendarHeight, setCalendarHeight] = useState(650); // default height
+  const [selectedTag, setSelectedTag] = useState('all'); // tag filtering
+
+
+  const defaultTagColors: Record<string, string> = {
+    general: '#3b82f6', // blue
+    focus: '#f5deb3',   // beige
+    meeting: '#ef4444', // red
+    workout: '#10b981', // green
+    personal: '#8b5cf6', // purple
+  };  
 
   const [formData, setFormData] = useState({
     title: '',
@@ -144,33 +154,46 @@ export default function Calendar() {
     const { event } = eventInfo;
     const description = event.extendedProps.description || '';
     const title = event.title || '';
-
+    const tag = event.extendedProps.tag || 'general';
+    const color = event.extendedProps.color || '#3b82f6';
+  
     const formatTime = (date: Date | null) => {
       if (!date) return '';
       return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     };
-
+  
     const startTimeStr = formatTime(event.start);
     const endTimeStr = formatTime(event.end);
     const timeRange = endTimeStr ? `${startTimeStr} - ${endTimeStr}` : startTimeStr;
-
+  
     return (
       <div style={{ display: 'flex', flexDirection: 'column' }}>
-        {startTimeStr && (
+        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+          {startTimeStr && (
+            <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#fff' }}>{timeRange}</div>
+          )}
           <div
-            style={{ fontSize: '0.9rem', fontWeight: '600', color: '#ffffff' }}
-            title={timeRange}
+            style={{
+              fontSize: '0.65rem',
+              fontWeight: 500,
+              backgroundColor: '#ffffff50',
+              color: '#fff',
+              padding: '0 6px',
+              borderRadius: '6px',
+              marginLeft: 'auto',
+              whiteSpace: 'nowrap',
+            }}
           >
-            {timeRange}
+            {tag}
           </div>
-        )}
-        <div style={{ fontSize: '1.0rem', fontWeight: 600, color: '#ffffff' }}>{title}</div>
+        </div>
+        <div style={{ fontSize: '1rem', fontWeight: 600, color: '#fff' }}>{title}</div>
         {description && (
           <div
             style={{
               fontSize: '0.7rem',
               fontWeight: 400,
-              color: '#cccccc',
+              color: '#ddd',
               whiteSpace: 'nowrap',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
@@ -184,9 +207,28 @@ export default function Calendar() {
     );
   }
 
+
+  //  DOM Rendering
   return (
-    <div className="relative w-full p-4 bg-white rounded-lg shadow-lg h-[650px] flex flex-col">
-      <div className="flex justify-end mb-4">
+    <div className="relative w-full p-4 bg-white rounded-lg shadow-lg h-[750px] flex flex-col">
+      {/* Top toolbar: Tag filter + Add Event */}
+      <div className="flex justify-between items-center mb-4">
+        <div className="flex items-center gap-4">
+          <label className="font-medium">Filter by Tag:</label>
+          <select
+            className="border border-gray-300 rounded p-2"
+            value={selectedTag}
+            onChange={e => setSelectedTag(e.target.value)}
+          >
+            <option value="all">All</option>
+            {['general', 'focus', 'meeting', 'workout', 'personal'].map(tag => (
+              <option key={tag} value={tag}>
+                {tag.charAt(0).toUpperCase() + tag.slice(1)}
+              </option>
+            ))}
+          </select>
+        </div>
+  
         <button
           className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
           onClick={() => {
@@ -197,7 +239,8 @@ export default function Calendar() {
           Add Event
         </button>
       </div>
-
+  
+      {/* Calendar */}
       <div className="flex-1">
         <FullCalendar
           plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
@@ -211,7 +254,7 @@ export default function Calendar() {
           selectMirror={true}
           select={handleDateSelect}
           eventClick={handleEventClick}
-          events={events}
+          events={selectedTag === 'all' ? events : events.filter(ev => ev.extendedProps?.tag === selectedTag)}
           ref={calendarRef}
           datesSet={handleDatesSet}
           eventColor="#3788d8"
@@ -231,7 +274,7 @@ export default function Calendar() {
           eventContent={renderEventContent}
         />
       </div>
-
+  
       {/* Modal Form */}
       {isFormOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50">
@@ -258,24 +301,21 @@ export default function Calendar() {
                   </div>
                 ))}
               </div>
-
+  
               {/* Right Column */}
               <div className="flex-1 space-y-4">
-                {[
-                  { label: 'Location', value: formData.location, key: 'location' },
-                ].map(({ label, value, key }) => (
-                  <div key={key}>
-                    <label className="block mb-1 font-medium">{label}</label>
-                    <input
-                      type="text"
-                      className="w-full border border-gray-300 rounded p-2"
-                      value={value}
-                      onChange={e => setFormData({ ...formData, [key]: e.target.value })}
-                    />
-                  </div>
-                ))}
-
-                {/* Reminder Select */}
+                {/* Location */}
+                <div>
+                  <label className="block mb-1 font-medium">Location</label>
+                  <input
+                    type="text"
+                    className="w-full border border-gray-300 rounded p-2"
+                    value={formData.location}
+                    onChange={e => setFormData({ ...formData, location: e.target.value })}
+                  />
+                </div>
+  
+                {/* Reminder */}
                 <div>
                   <label className="block mb-1 font-medium">Reminder</label>
                   <select
@@ -290,14 +330,22 @@ export default function Calendar() {
                     ))}
                   </select>
                 </div>
-
-                {/* Tag Select */}
+  
+                {/* Tag */}
                 <div>
                   <label className="block mb-1 font-medium">Tag</label>
                   <select
                     className="w-full border border-gray-300 rounded p-2"
                     value={formData.tag}
-                    onChange={e => setFormData({ ...formData, tag: e.target.value })}
+                    onChange={e => {
+                      const newTag = e.target.value;
+                      const defaultColor = defaultTagColors[newTag];
+                      setFormData(prev => ({
+                        ...prev,
+                        tag: newTag,
+                        color: prev.color === defaultTagColors[prev.tag] ? defaultColor : prev.color,
+                      }));
+                    }}
                   >
                     {['general', 'focus', 'meeting', 'workout', 'personal'].map(tag => (
                       <option key={tag} value={tag}>
@@ -306,8 +354,8 @@ export default function Calendar() {
                     ))}
                   </select>
                 </div>
-
-                {/* Color Picker */}
+  
+                {/* Color */}
                 <div>
                   <label className="block mb-1 font-medium">Color</label>
                   <input
@@ -319,8 +367,8 @@ export default function Calendar() {
                 </div>
               </div>
             </form>
-
-            {/* Buttons row (span full width) */}
+  
+            {/* Modal Buttons */}
             <div className="flex justify-between pt-4">
               {selectedEvent && (
                 <button
@@ -352,5 +400,5 @@ export default function Calendar() {
         </div>
       )}
     </div>
-  );
+  );  
 }
