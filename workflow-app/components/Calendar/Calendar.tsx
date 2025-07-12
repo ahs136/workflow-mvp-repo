@@ -10,21 +10,24 @@ import { EventInput, DatesSetArg } from '@fullcalendar/core';
 export default function Calendar() {
   const calendarRef = useRef<FullCalendar>(null);
 
+  const defaultTagColors: Record<string, string> = {
+    deadline: '#dc2626',  // red
+    meeting: '#8b5cf6',   // purple
+    class: '#1d4ed8',     // blue
+    focus: '#facc15',     // yellow
+    workout: '#10b981',   // green
+    social: '#ec4899',    // pink
+    personal: '#6b7280',  // gray
+  };
+
   const [events, setEvents] = useState<EventInput[]>([]);
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [selectedEvent, setSelectedEvent] = useState<any>(null);
-  const [calendarHeight, setCalendarHeight] = useState(650); // default height
-  const [selectedTag, setSelectedTag] = useState('all'); // tag filtering
+  const [selectedEvent, setSelectedEvent] = useState<EventInput | null>(null);
+  const [calendarHeight, setCalendarHeight] = useState(650);
+  const [selectedTag, setSelectedTag] = useState('all');
+  const [structuralViewOn, setStructuralViewOn] = useState(false);
 
-
-  const defaultTagColors: Record<string, string> = {
-    general: '#3b82f6', // blue
-    focus: '#f5deb3',   // beige
-    meeting: '#ef4444', // red
-    workout: '#10b981', // green
-    personal: '#8b5cf6', // purple
-  };  
 
   const [formData, setFormData] = useState({
     title: '',
@@ -33,37 +36,39 @@ export default function Calendar() {
     end: '',
     location: '',
     reminder: 'none',
-    tag: 'general',
-    color: '#3b82f6',
+    tag: 'deadline',
+    color: defaultTagColors['deadline'],
+    isStructural: false,
   });
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
       setCalendarHeight(window.innerHeight * 0.7);
-    }
-    // Request notification permission
-    if ('Notification' in window && Notification.permission !== 'granted') {
-      Notification.requestPermission();
+      if ('Notification' in window && Notification.permission !== 'granted') {
+        Notification.requestPermission();
+      }
     }
   }, []);
-
 
   useEffect(() => {
     const stored = localStorage.getItem('calendarEvents');
     if (stored) {
-      const parsedEvents = JSON.parse(stored).map((event: any) => ({
-        ...event,
-        start: new Date(event.start),
-        end: event.end ? new Date(event.end) : undefined,
-      }));
+      const parsedEvents = JSON.parse(stored).map((event: any) => {
+        const tagColor = defaultTagColors[event.extendedProps?.tag] || '#3b82f6';
+        return {
+          ...event,
+          start: new Date(event.start),
+          end: event.end ? new Date(event.end) : undefined,
+          backgroundColor: event.backgroundColor || tagColor,
+          color: '#fff',
+        };
+      });
       setEvents(parsedEvents);
     }
   }, []);
 
-  // Schedule reminder
-function scheduleReminder(event: EventInput) {
-    if (!('Notification' in window)) return;
-    if (Notification.permission !== 'granted') return;
+  function scheduleReminder(event: EventInput) {
+    if (!('Notification' in window) || Notification.permission !== 'granted') return;
 
     const reminderMap: Record<string, number> = {
       none: 0,
@@ -77,20 +82,16 @@ function scheduleReminder(event: EventInput) {
     if (!reminderBefore || !event.start) return;
 
     const startDate = event.start instanceof Date ? event.start : new Date(event.start as string);
-    const eventStartTime = startDate.getTime();
-    const notifyTime = eventStartTime - reminderBefore;
-    const now = Date.now();
+    const notifyTime = startDate.getTime() - reminderBefore;
+    const delay = notifyTime - Date.now();
 
-    const delay = notifyTime - now;
-
-    if (delay <= 0) return; // Event is soon or past, no reminder
+    if (delay <= 0) return;
 
     setTimeout(() => {
       new Notification(`Reminder: ${event.title}`, {
         body: `Starts at ${startDate.toLocaleString()}`,
-        // icon: '/path/to/icon.png', // optional
       });
-    }, 3000);
+    }, delay);
   }
 
   const formatDateForInput = (date: Date) => {
@@ -108,8 +109,9 @@ function scheduleReminder(event: EventInput) {
       end: '',
       location: '',
       reminder: 'none',
-      tag: 'general',
-      color: '#3b82f6',
+      tag: 'deadline',
+      color: defaultTagColors['deadline'],
+      isStructural: false,
     });
     setSelectedEvent(null);
     setIsFormOpen(false);
@@ -134,74 +136,72 @@ function scheduleReminder(event: EventInput) {
     setFormData({
       title: event.title as string,
       description: event.extendedProps?.description || '',
-      start:
-        typeof event.start === 'string' ? event.start : formatDateForInput(new Date(event.start as any)),
-      end:
-        event.end
-          ? typeof event.end === 'string'
-            ? event.end
-            : formatDateForInput(new Date(event.end as any))
-          : '',
+      start: typeof event.start === 'string' ? event.start : formatDateForInput(new Date(event.start as any)),
+      end: event.end
+        ? typeof event.end === 'string'
+          ? event.end
+          : formatDateForInput(new Date(event.end as any))
+        : '',
       location: event.extendedProps?.location || '',
       reminder: event.extendedProps?.reminder || 'none',
-      tag: event.extendedProps?.tag || 'general',
-      color: event.extendedProps?.color || '#3b82f6',
+      tag: event.extendedProps?.tag || 'deadline',
+      color: event.backgroundColor || defaultTagColors[event.extendedProps?.tag] || '#3b82f6',
+      isStructural: event.extendedProps?.isStructural || false,
     });
     setIsFormOpen(true);
   };
 
   const handleFormSubmit = (e: any) => {
-    e.preventDefault(); // prevent default form submission
+    e.preventDefault();
     if (!formData.title || !formData.start) {
       alert('Title and start time are required');
       return;
     }
-    // Create new event
+
+    // If user changed tag but not color, sync color to tag color
+    const tagColor = defaultTagColors[formData.tag];
+    const eventColor = formData.color === defaultTagColors[selectedEvent?.extendedProps?.tag || ''] ? tagColor : formData.color;
+
     const newEvent: EventInput = {
       id: selectedEvent?.id || String(Date.now()),
       title: formData.title,
       start: new Date(formData.start),
       end: formData.end ? new Date(formData.end) : undefined,
-      backgroundColor: formData.color,
+      backgroundColor: eventColor,
       color: '#fff',
       extendedProps: {
         description: formData.description,
         location: formData.location,
         reminder: formData.reminder,
         tag: formData.tag,
-        color: formData.color,
+        color: eventColor,
+        isStructural: formData.isStructural,
       },
     };
-    // Update events in local storage
+
     setEvents(prev => {
       const filtered = selectedEvent ? prev.filter(ev => ev.id !== selectedEvent.id) : prev;
       const updated = [...filtered, newEvent];
-      saveEventsToLocalStorage(updated); // save here
+      saveEventsToLocalStorage(updated);
       return updated;
     });
-    // Send notification
+
     scheduleReminder(newEvent);
-    // Reset form
     resetForm();
   };
 
-  // Delete event
   const handleDelete = () => {
+    if (!selectedEvent) return;
     const updated = events.filter(event => event.id !== selectedEvent.id);
-  setEvents(updated);
-  saveEventsToLocalStorage(updated); // save here
-  resetForm();
-  }
-    // if (!selectedEvent) return;
-    // setEvents(events.filter(event => event.id !== selectedEvent.id));
-    // resetForm();
-  // };
+    setEvents(updated);
+    saveEventsToLocalStorage(updated);
+    resetForm();
+  };
 
   const handleDatesSet = (arg: DatesSetArg) => {
     setCurrentDate(arg.start);
   };
 
-  // Handle event drag and drop
   const handleEventDrop = (info: any) => {
     const updatedEvent: EventInput = {
       id: info.event.id,
@@ -214,29 +214,22 @@ function scheduleReminder(event: EventInput) {
         ...info.event.extendedProps,
       },
     };
-  
-    const updatedEvents = events.map(ev =>
-      ev.id === info.event.id ? updatedEvent : ev
-    );
-  
+
+    const updatedEvents = events.map(ev => (ev.id === info.event.id ? updatedEvent : ev));
     setEvents(updatedEvents);
     saveEventsToLocalStorage(updatedEvents);
-    scheduleReminder(updatedEvent); 
+    scheduleReminder(updatedEvent);
   };
-  
 
-  // Save events to local storage
   function saveEventsToLocalStorage(events: EventInput[]) {
     const cleaned = events.map(ev => ({
       ...ev,
-      start: (ev.start instanceof Date) ? ev.start.toISOString() : ev.start,
-      end: (ev.end instanceof Date) ? ev.end.toISOString() : ev.end,
+      start: ev.start instanceof Date ? ev.start.toISOString() : ev.start,
+      end: ev.end instanceof Date ? ev.end.toISOString() : ev.end,
     }));
     localStorage.setItem('calendarEvents', JSON.stringify(cleaned));
   }
 
-  
-  // Custom event rendering showing time, title, description
   function renderEventContent(eventInfo: any) {
     const { event } = eventInfo;
     const description = event.extendedProps.description || '';
@@ -244,16 +237,16 @@ function scheduleReminder(event: EventInput) {
     const tag = event.extendedProps.tag || 'general';
     const bgColor = event.backgroundColor || '#3b82f6';
     const textColor = event.textColor || '#fff';
-  
+
     const formatTime = (date: Date | null) => {
       if (!date) return '';
       return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     };
-  
+
     const startTimeStr = formatTime(event.start);
     const endTimeStr = formatTime(event.end);
     const timeRange = endTimeStr ? `${startTimeStr} - ${endTimeStr}` : startTimeStr;
-  
+
     return (
       <div
         style={{
@@ -266,9 +259,7 @@ function scheduleReminder(event: EventInput) {
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          {startTimeStr && (
-            <div style={{ fontSize: '0.8rem', fontWeight: 600 }}>{timeRange}</div>
-          )}
+          {startTimeStr && <div style={{ fontSize: '0.8rem', fontWeight: 600 }}>{timeRange}</div>}
           <div
             style={{
               fontSize: '0.65rem',
@@ -301,29 +292,65 @@ function scheduleReminder(event: EventInput) {
       </div>
     );
   }
-  
 
-  //  DOM Rendering
+  const filteredEvents = structuralViewOn
+  ? events.filter(ev => ev.extendedProps?.isStructural)
+  : selectedTag === 'all'
+    ? events
+    : events.filter(ev => ev.extendedProps?.tag === selectedTag);
+
+  //DOM RENDERING STARTS HERE
   return (
     <div className="relative w-full p-4 bg-white rounded-lg shadow-lg h-[750px] flex flex-col">
-      {/* Top toolbar: Tag filter + Add Event */}
+      {/* Top toolbar */}
       <div className="flex justify-between items-center mb-4">
-        <div className="flex items-center gap-4">
-          <label className="font-medium">Filter by Tag:</label>
-          <select
-            className="border border-gray-300 rounded p-2"
-            value={selectedTag}
-            onChange={e => setSelectedTag(e.target.value)}
-          >
-            <option value="all">All</option>
-            {['general', 'focus', 'meeting', 'workout', 'personal'].map(tag => (
-              <option key={tag} value={tag}>
-                {tag.charAt(0).toUpperCase() + tag.slice(1)}
-              </option>
-            ))}
-          </select>
+        {/* Left side: Filter dropdown + toggle */}
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-4">
+            <label className="font-medium">Filter:</label>
+            <select
+              disabled={structuralViewOn}
+              className="border border-gray-300 rounded p-2"
+              value={selectedTag}
+              onChange={e => setSelectedTag(e.target.value)}
+            >
+              <option value="all">All</option>
+              {Object.keys(defaultTagColors).map(tag => (
+                <option key={tag} value={tag}>
+                  {tag.charAt(0).toUpperCase() + tag.slice(1)}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Add 10px padding between dropdown and toggle */}
+          <div className="pl-[10px]">
+            <label className="flex items-center gap-3 cursor-pointer select-none font-medium text-gray-700">
+              <span className="text-sm">Structured View</span>
+
+              <div className="relative inline-block w-12 h-6">
+                <input
+                  type="checkbox"
+                  className="opacity-0 w-0 h-0"
+                  checked={structuralViewOn}
+                  onChange={() => setStructuralViewOn(prev => !prev)}
+                />
+                <span
+                  className={`slider absolute top-0 left-0 right-0 bottom-0 rounded-full transition-colors duration-300 ${
+                    structuralViewOn ? 'bg-green-400' : 'bg-gray-300'
+                  }`}
+                ></span>
+                <span
+                  className={`dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full shadow-md transition-transform duration-300 ${
+                    structuralViewOn ? 'translate-x-6' : ''
+                  }`}
+                ></span>
+              </div>
+            </label>
+          </div>
         </div>
-  
+
+        {/* Right side: Add Event button */}
         <button
           className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
           onClick={() => {
@@ -334,7 +361,8 @@ function scheduleReminder(event: EventInput) {
           Add Event
         </button>
       </div>
-  
+
+
       {/* Calendar */}
       <div className="flex-1">
         <FullCalendar
@@ -351,57 +379,48 @@ function scheduleReminder(event: EventInput) {
           editable={true}
           eventDrop={handleEventDrop}
           eventClick={handleEventClick}
-          events={selectedTag === 'all' ? events : events.filter(ev => ev.extendedProps?.tag === selectedTag)}
+          events={filteredEvents}
           ref={calendarRef}
           datesSet={handleDatesSet}
           height={calendarHeight}
           views={{
-            timeGridWeek: {
-              minTime: '08:00:00',
-              maxTime: '20:00:00',
-              allDaySlot: false,
-            },
-            timeGridDay: {
-              minTime: '08:00:00',
-              maxTime: '20:00:00',
-              allDaySlot: false,
-            },
+            timeGridWeek: { minTime: '08:00:00', maxTime: '20:00:00', allDaySlot: false },
+            timeGridDay: { minTime: '08:00:00', maxTime: '20:00:00', allDaySlot: false },
           }}
           eventContent={renderEventContent}
         />
       </div>
-  
+
       {/* Modal Form */}
       {isFormOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50">
           <div className="bg-white p-6 rounded-lg w-full max-w-4xl shadow-lg">
             <h2 className="text-xl font-bold mb-4">{selectedEvent ? 'Edit Event' : 'Add Event'}</h2>
             <form id="event-form" onSubmit={handleFormSubmit} className="flex gap-6 flex-col">
-              {/* Left Column */}
               <div className="flex space-x-6">
+                {/* Left column */}
                 <div className="flex-1 space-y-4">
                   {[
-                    { label: 'Event Name *', value: formData.title, key: 'title', required: true },
-                    { label: 'Event Description', value: formData.description, key: 'description' },
-                    { label: 'Start Time *', value: formData.start, key: 'start', type: 'datetime-local', required: true },
-                    { label: 'End Time (optional)', value: formData.end, key: 'end', type: 'datetime-local' },
-                  ].map(({ label, value, key, required, type }) => (
+                    { label: 'Event Name *', key: 'title', required: true, type: 'text' },
+                    { label: 'Event Description', key: 'description', type: 'text' },
+                    { label: 'Start Time *', key: 'start', required: true, type: 'datetime-local' },
+                    { label: 'End Time (optional)', key: 'end', type: 'datetime-local' },
+                  ].map(({ label, key, required, type }) => (
                     <div key={key}>
                       <label className="block mb-1 font-medium">{label}</label>
                       <input
                         type={type || 'text'}
                         className="w-full border border-gray-300 rounded p-2"
-                        value={value}
+                        value={formData[key as keyof typeof formData]}
                         onChange={e => setFormData({ ...formData, [key]: e.target.value })}
                         required={required}
                       />
                     </div>
                   ))}
                 </div>
-  
-                {/* Right Column */}
+
+                {/* Right column */}
                 <div className="flex-1 space-y-4">
-                  {/* Location */}
                   <div>
                     <label className="block mb-1 font-medium">Location</label>
                     <input
@@ -411,8 +430,6 @@ function scheduleReminder(event: EventInput) {
                       onChange={e => setFormData({ ...formData, location: e.target.value })}
                     />
                   </div>
-  
-                  {/* Reminder */}
                   <div>
                     <label className="block mb-1 font-medium">Reminder</label>
                     <select
@@ -422,13 +439,13 @@ function scheduleReminder(event: EventInput) {
                     >
                       {['none', '10m', '1h', '1d', '2d'].map(val => (
                         <option key={val} value={val}>
-                          {val === 'none' ? 'None' : `${val.replace('m', ' minutes').replace('h', ' hour').replace('d', ' day')} before`}
+                          {val === 'none'
+                            ? 'None'
+                            : `${val.replace('m', ' minutes').replace('h', ' hour').replace('d', ' day')} before`}
                         </option>
                       ))}
                     </select>
                   </div>
-  
-                  {/* Tag */}
                   <div>
                     <label className="block mb-1 font-medium">Tag</label>
                     <select
@@ -436,23 +453,20 @@ function scheduleReminder(event: EventInput) {
                       value={formData.tag}
                       onChange={e => {
                         const newTag = e.target.value;
-                        const defaultColor = defaultTagColors[newTag];
                         setFormData(prev => ({
                           ...prev,
                           tag: newTag,
-                          color: prev.color === defaultTagColors[prev.tag] ? defaultColor : prev.color,
+                          color: defaultTagColors[newTag], // always sync color with tag change
                         }));
                       }}
                     >
-                      {['general', 'focus', 'meeting', 'workout', 'personal'].map(tag => (
+                      {Object.keys(defaultTagColors).map(tag => (
                         <option key={tag} value={tag}>
                           {tag.charAt(0).toUpperCase() + tag.slice(1)}
                         </option>
                       ))}
                     </select>
                   </div>
-  
-                  {/* Color */}
                   <div>
                     <label className="block mb-1 font-medium">Color</label>
                     <input
@@ -462,23 +476,17 @@ function scheduleReminder(event: EventInput) {
                       onChange={e => setFormData({ ...formData, color: e.target.value })}
                     />
                   </div>
-  
-                  {/* Recurrence coming soon */}
-                  <div>
-                    <label className="block mb-1 font-medium" htmlFor="recurrence-coming-soon">
-                      Recurrence (coming soon)
-                    </label>
+                  <div className="flex items-center space-x-2">
                     <input
-                      id="recurrence-coming-soon"
                       type="checkbox"
-                      disabled
-                      className="cursor-not-allowed"
+                      checked={formData.isStructural}
+                      onChange={e => setFormData(prev => ({ ...prev, isStructural: e.target.checked }))}
                     />
+                    <label className="font-medium">This is a structural event</label>
                   </div>
                 </div>
               </div>
-  
-              {/* Modal Buttons */}
+
               <div className="flex justify-between pt-4">
                 {selectedEvent && (
                   <button
@@ -510,5 +518,5 @@ function scheduleReminder(event: EventInput) {
         </div>
       )}
     </div>
-  );  
+  );
 }

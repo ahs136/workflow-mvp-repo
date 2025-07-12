@@ -66,3 +66,27 @@ h1, h2, h3, h4, h5, h6 {
   background-color: inherit !important;
   color: inherit !important;
 }
+
+/* You can put these in your CSS file if you prefer */
+
+.slider {
+  background-color: #ccc;
+}
+
+input:checked + .slider {
+  background-color: #4ade80; /* Tailwind green-400 */
+}
+
+.dot {
+  top: 0.25rem; /* 1 */
+  left: 0.25rem; /* 1 */
+  width: 1rem; /* 4 */
+  height: 1rem; /* 4 */
+  background: white;
+  border-radius: 9999px;
+  transition: transform 0.3s ease;
+}
+
+input:checked + .slider + .dot {
+  transform: translateX(1.5rem); /* 6 */
+}
