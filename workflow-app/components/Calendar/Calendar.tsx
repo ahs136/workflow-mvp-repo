@@ -76,7 +76,8 @@ function scheduleReminder(event: EventInput) {
     const reminderBefore = reminderMap[event.extendedProps?.reminder || 'none'];
     if (!reminderBefore || !event.start) return;
 
-    const eventStartTime = new Date(event.start).getTime();
+    const startDate = event.start instanceof Date ? event.start : new Date(event.start as string);
+    const eventStartTime = startDate.getTime();
     const notifyTime = eventStartTime - reminderBefore;
     const now = Date.now();
 
@@ -86,7 +87,7 @@ function scheduleReminder(event: EventInput) {
 
     setTimeout(() => {
       new Notification(`Reminder: ${event.title}`, {
-        body: `Starts at ${new Date(event.start).toLocaleString()}`,
+        body: `Starts at ${startDate.toLocaleString()}`,
         // icon: '/path/to/icon.png', // optional
       });
     }, 3000);
