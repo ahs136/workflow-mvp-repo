@@ -94,27 +94,44 @@ export default function Home() {
 
         {/* 4. Reminders (Today Only) */}
         <div className="bg-white p-4 rounded-lg shadow">
-          <h2 className="text-xl font-semibold mb-2">Reminders</h2>
-          <ul className="text-sm space-y-2">
-            {events
-              .filter(e => isSameDay(e.start, today) && e.extendedProps?.reminder !== 'none')
-              .map(e => (
+        <h2 className="text-xl font-semibold mb-2">Reminders</h2>
+        <ul className="text-sm space-y-2">
+            {events.filter(e => isSameDay(e.start, today) && e.extendedProps?.reminder !== 'none').length > 0 ? (
+            events
+                .filter(e => isSameDay(e.start, today) && e.extendedProps?.reminder !== 'none')
+                .map(e => (
                 <li key={e.id}>
-                  ⏰ {e.title} - {e.extendedProps.reminder} before
+                    ⏰ {e.title} - {e.extendedProps.reminder} before
                 </li>
-              ))}
-          </ul>
+                ))
+            ) : (
+            <li className="text-gray-500">No reminders today.</li>
+            )}
+        </ul>
         </div>
 
-        {/* 5. Non-Negotiables Placeholder */}
+
+        {/* 5. Non-Negotiables */}
         <div className="bg-white p-4 rounded-lg shadow">
-          <h2 className="text-xl font-semibold mb-2">Weekly Non-Negotiables</h2>
-          <ul className="text-sm list-disc pl-4">
+        <h2 className="text-xl font-semibold mb-2">Weekly Non-Negotiables</h2>
+        <ul className="text-sm list-disc pl-4">
+            {/* MVP fallback hardcoded */}
             <li>🏋️‍♂️ Workout — M/W/F 7:00 AM</li>
             <li>📞 Team Sync — Mon 11:00 AM</li>
             <li>🧠 Focus Time — Daily 2–4 PM</li>
-          </ul>
+
+            {/* Show actual non-negotiable events */}
+            {events.filter(e => e.extendedProps?.isNonNegotiable).length > 0 && (
+            <li>
+                {events
+                .filter(e => e.extendedProps?.isNonNegotiable)
+                .map(e => e.title)
+                .join(', ')}
+            </li>
+            )}
+        </ul>
         </div>
+
 
         {/* 6. Productivity Metrics */}
         <div className="bg-white p-4 rounded-lg shadow">
@@ -130,7 +147,7 @@ export default function Home() {
         <div className="bg-white p-4 rounded-lg shadow">
           <h2 className="text-xl font-semibold mb-2">Weekly Tag Insights</h2>
           <ul className="text-sm">
-            {['general', 'focus', 'meeting', 'workout', 'personal'].map(tag => {
+            {['deadline', 'meeting', 'class', 'focus', 'workout', 'social', 'personal'].map(tag => {
               const count = events.filter(e => e.extendedProps?.tag === tag).length;
               return (
                 <li key={tag}>

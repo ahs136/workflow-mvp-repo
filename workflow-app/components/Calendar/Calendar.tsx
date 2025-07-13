@@ -14,9 +14,9 @@ export default function Calendar() {
     deadline: '#dc2626',  // red
     meeting: '#8b5cf6',   // purple
     class: '#1d4ed8',     // blue
-    focus: '#facc15',     // yellow
-    workout: '#10b981',   // green
-    social: '#ec4899',    // pink
+    focus: '#ede8d0',     // beige
+    workout: '#03c04a',   // green
+    social: '#ff8da1',    // pink
     personal: '#6b7280',  // gray
   };
 
@@ -39,6 +39,15 @@ export default function Calendar() {
     tag: 'deadline',
     color: defaultTagColors['deadline'],
     isStructural: false,
+    isNonNegotiable: false, /* EDIT IN DEVTOOLS: let events = JSON.parse(localStorage.getItem('calendarEvents') || '[]');
+    events.forEach(e => {
+      if(e.title === 'My Event Name') {
+        e.extendedProps = e.extendedProps || {};
+        e.extendedProps.isNonNegotiable = !e.extendedProps.isNonNegotiable;
+      }
+    });
+    localStorage.setItem('calendarEvents', JSON.stringify(events));
+    */
   });
 
   useEffect(() => {
@@ -112,6 +121,7 @@ export default function Calendar() {
       tag: 'deadline',
       color: defaultTagColors['deadline'],
       isStructural: false,
+      isNonNegotiable: false,
     });
     setSelectedEvent(null);
     setIsFormOpen(false);
@@ -147,6 +157,7 @@ export default function Calendar() {
       tag: event.extendedProps?.tag || 'deadline',
       color: event.backgroundColor || defaultTagColors[event.extendedProps?.tag] || '#3b82f6',
       isStructural: event.extendedProps?.isStructural || false,
+      isNonNegotiable: event.extendedProps?.isNonNegotiable || false,
     });
     setIsFormOpen(true);
   };
@@ -176,6 +187,7 @@ export default function Calendar() {
         tag: formData.tag,
         color: eventColor,
         isStructural: formData.isStructural,
+        isNonNegotiable: formData.isNonNegotiable,
       },
     };
 
@@ -350,16 +362,27 @@ export default function Calendar() {
           </div>
         </div>
 
-        {/* Right side: Add Event button */}
-        <button
-          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
-          onClick={() => {
-            resetForm();
-            setIsFormOpen(true);
-          }}
-        >
-          Add Event
-        </button>
+        {/* Right side: Both buttons */}
+        <div className="flex items-center gap-2">
+          <button
+            className="px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition"
+            onClick={() => {
+              localStorage.removeItem("calendarEvents");
+              window.location.reload();
+            }}
+          >
+            Clear All Events
+          </button>     
+          <button
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+            onClick={() => {
+              resetForm();
+              setIsFormOpen(true);
+            }}
+          >
+            Add Event
+          </button>
+        </div>
       </div>
 
 
@@ -411,7 +434,7 @@ export default function Calendar() {
                       <input
                         type={type || 'text'}
                         className="w-full border border-gray-300 rounded p-2"
-                        value={formData[key as keyof typeof formData]}
+                        value={formData[key as keyof typeof formData] as string}
                         onChange={e => setFormData({ ...formData, [key]: e.target.value })}
                         required={required}
                       />
