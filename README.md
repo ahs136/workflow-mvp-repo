@@ -31,6 +31,13 @@ Planned integrations:
 🟢 MVP in progress  
 🟡 AI & calendar integration coming soon
 
+## 📸 Screenshots
+<img width="950" height="490" alt="Screenshot 2025-07-20 161324 - Copy" src="https://github.com/user-attachments/assets/7f60e75e-aee6-43a4-a197-a3a710127afb" />
+<img width="950" height="490" alt="Screenshot 2025-07-20 161018 - Copy" src="https://github.com/user-attachments/assets/0ecf7059-6569-46e3-8b27-f851a84a777c" />
+<img width="950" height="490" alt="Screenshot 2025-07-20 160959 - Copy" src="https://github.com/user-attachments/assets/cc81256b-a79d-4e88-933a-16a77a154749" />
+<img width="950" height="490" alt="Screenshot 2025-07-20 160945 - Copy" src="https://github.com/user-attachments/assets/30ecab5d-386e-41d7-9508-a3a9f352d425" />
+
+
 ## 📅 Weekly Log
 
 ### Week 1 – May 26, 2025
@@ -61,9 +68,6 @@ Planned integrations:
   - dependencies
 - Beginning to learn Next.js for project structure, routing, and APIs
 
-
-## 📸 Screenshots
-(Coming soon)
 
 ## Quick Start
 ```bash
