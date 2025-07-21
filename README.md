@@ -24,12 +24,14 @@ This project leverages a modern web development stack to ensure scalability, mai
 - **Git & GitHub** – Version control and collaboration
 
 Planned integrations:
+- **React Full Calendar** (complete)
 - **AI features** (coming soon)
-- **Calendar API integration** (coming soon)
+
 
 ## 🧪 Status
 🟢 MVP in progress  
-🟡 AI & calendar integration coming soon
+🟡 AI & calendar integration started in Week 5!
+
 
 ## 📸 Screenshots
 <img width="950" height="490" alt="Screenshot 2025-07-20 161324 - Copy" src="https://github.com/user-attachments/assets/7f60e75e-aee6-43a4-a197-a3a710127afb" />

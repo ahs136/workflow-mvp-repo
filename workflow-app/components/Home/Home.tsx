@@ -118,7 +118,7 @@ export default function Home() {
             {/* MVP fallback hardcoded */}
             <li>🏋️‍♂️ Workout — M/W/F 7:00 AM</li>
             <li>📞 Team Sync — Mon 11:00 AM</li>
-            <li>🧠 Focus Time — Daily 2–4 PM</li>
+            <li>🧠 Focus Time — Daily 2-4 PM</li>
 
             {/* Show actual non-negotiable events */}
             {events.filter(e => e.extendedProps?.isNonNegotiable).length > 0 && (
