@@ -8,6 +8,8 @@ import interactionPlugin from '@fullcalendar/interaction';
 import { EventInput, DatesSetArg } from '@fullcalendar/core';
 
 export default function Calendar() {
+
+
   const calendarRef = useRef<FullCalendar>(null);
 
   const defaultTagColors: Record<string, string> = {
@@ -27,7 +29,7 @@ export default function Calendar() {
   const [calendarHeight, setCalendarHeight] = useState(650);
   const [selectedTag, setSelectedTag] = useState('all');
   const [structuralViewOn, setStructuralViewOn] = useState(false);
-
+  const [parseInput, setParseInput] = useState('');
 
   const [formData, setFormData] = useState({
     title: '',
@@ -85,6 +87,12 @@ export default function Calendar() {
       '1h': 60 * 60 * 1000,
       '1d': 24 * 60 * 60 * 1000,
       '2d': 2 * 24 * 60 * 60 * 1000,
+
+      // GPT-style keys:
+      '10 minutes before': 10 * 60 * 1000,
+      '1 hour before': 60 * 60 * 1000,
+      '1 day before': 24 * 60 * 60 * 1000,
+      '2 days before': 2 * 24 * 60 * 60 * 1000,
     };
 
     const reminderBefore = reminderMap[event.extendedProps?.reminder || 'none'];
@@ -242,6 +250,42 @@ export default function Calendar() {
     localStorage.setItem('calendarEvents', JSON.stringify(cleaned));
   }
 
+  // JSON Parsing Function
+  async function handleParseEvent() {
+    if (!parseInput.trim()) return;
+  
+    try {
+      const res = await fetch('/api/parse-events', {
+        method: 'POST',
+        body: JSON.stringify({ userInput: parseInput }),
+      });
+  
+      const { result } = await res.json();
+
+      setFormData({
+        title: result.title,
+        description: result.description || '',
+        start: result.start.slice(0, 16),
+        end: result.end.slice(0, 16),
+        location: result.location || '',
+        reminder: result.reminder || 'none',
+        tag: result.tag.toLowerCase(),
+        color: defaultTagColors[result.tag.toLowerCase()] || '#3b82f6',
+        isStructural: result.isStructural || false,
+        isNonNegotiable: result.isNonNegotiable || false,
+      });
+  
+      setSelectedEvent(null);
+      setIsFormOpen(true);
+      setParseInput('');
+    } catch (err) {
+      console.error(err);
+      alert('Failed to parse event. Please try again.');
+    }
+  }
+  
+
+  // Calendar rendering
   function renderEventContent(eventInfo: any) {
     const { event } = eventInfo;
     const description = event.extendedProps.description || '';
@@ -372,7 +416,23 @@ export default function Calendar() {
             }}
           >
             Clear All Events
-          </button>     
+          </button>  
+          {/* Quick‐parse bar */}
+          <div className="flex gap-2 mb-4">
+            <input
+              type="text"
+              value={parseInput}
+              onChange={e => setParseInput(e.target.value)}
+              placeholder="Describe an event…"
+              className="flex-1 border rounded p-2"
+            />
+            <button
+              onClick={handleParseEvent}
+              className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+            >
+              Parse Event
+            </button>
+          </div>
           <button
             className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
             onClick={() => {
@@ -506,6 +566,14 @@ export default function Calendar() {
                       onChange={e => setFormData(prev => ({ ...prev, isStructural: e.target.checked }))}
                     />
                     <label className="font-medium">This is a structural event</label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      checked={formData.isNonNegotiable}
+                      onChange={e => setFormData(prev => ({ ...prev, isNonNegotiable: e.target.checked }))}
+                    />
+                    <label className="font-medium">This is a non-negotiable event</label>
                   </div>
                 </div>
               </div>
