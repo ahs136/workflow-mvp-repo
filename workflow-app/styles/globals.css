@@ -90,3 +90,9 @@ input:checked + .slider {
 input:checked + .slider + .dot {
   transform: translateX(1.5rem); /* 6 */
 }
+
+.fc-timeGridWeek-view .tag-box {
+  font-size: 0.55rem;
+  padding: 0 4px;
+  max-width: 40px;
+}

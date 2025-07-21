@@ -252,8 +252,24 @@ export default function Calendar() {
 
   // JSON Parsing Function
   async function handleParseEvent() {
-    if (!parseInput.trim()) return;
-  
+    if (!parseInput.trim()) {
+
+      setFormData({
+        title: '',
+        description: '',
+        start: '',
+        end: '',
+        location: '',
+        reminder: 'none',
+        tag: 'deadline',
+        color: defaultTagColors['deadline'],
+        isStructural: false,
+        isNonNegotiable: false,
+      });
+      setSelectedEvent(null);
+      setIsFormOpen(true);
+      return;
+    }
     try {
       const res = await fetch('/api/parse-events', {
         method: 'POST',
@@ -317,12 +333,13 @@ export default function Calendar() {
         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
           {startTimeStr && <div style={{ fontSize: '0.8rem', fontWeight: 600 }}>{timeRange}</div>}
           <div
+            className="tag-box"
             style={{
-              fontSize: '0.65rem',
+              fontSize: '0.55rem',
               fontWeight: 500,
               backgroundColor: '#ffffff50',
-              padding: '0 6px',
-              borderRadius: '6px',
+              padding: '0 4px',
+              borderRadius: '4px',
               marginLeft: 'auto',
               whiteSpace: 'nowrap',
             }}
@@ -354,6 +371,11 @@ export default function Calendar() {
   : selectedTag === 'all'
     ? events
     : events.filter(ev => ev.extendedProps?.tag === selectedTag);
+
+
+
+
+
 
   //DOM RENDERING STARTS HERE
   return (
@@ -407,8 +429,22 @@ export default function Calendar() {
         </div>
 
         {/* Right side: Both buttons */}
-        <div className="flex items-center gap-2">
-          <button
+        <div className="flex items-center gap-2"> 
+          {/* Quick‐parse bar */}
+            <input
+              type="text"
+              value={parseInput}
+              onChange={e => setParseInput(e.target.value)}
+              placeholder="Type your event naturally, e.g. 'Lunch with Alex at 1pm tomorrow'"
+              className="flex-1 border rounded p-2 w-[500px]"
+            />
+            <button
+              onClick={handleParseEvent}
+              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+            >
+              Add Event
+            </button>
+            <button
             className="px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition"
             onClick={() => {
               localStorage.removeItem("calendarEvents");
@@ -416,32 +452,7 @@ export default function Calendar() {
             }}
           >
             Clear All Events
-          </button>  
-          {/* Quick‐parse bar */}
-          <div className="flex gap-2 mb-4">
-            <input
-              type="text"
-              value={parseInput}
-              onChange={e => setParseInput(e.target.value)}
-              placeholder="Describe an event…"
-              className="flex-1 border rounded p-2"
-            />
-            <button
-              onClick={handleParseEvent}
-              className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
-            >
-              Parse Event
-            </button>
-          </div>
-          <button
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
-            onClick={() => {
-              resetForm();
-              setIsFormOpen(true);
-            }}
-          >
-            Add Event
-          </button>
+          </button> 
         </div>
       </div>
 
