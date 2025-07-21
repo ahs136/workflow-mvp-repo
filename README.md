@@ -70,6 +70,13 @@ Planned integrations:
   - dependencies
 - Beginning to learn Next.js for project structure, routing, and APIs
 
+### Week 5+6 - July 7, 2025
+- Built custom modal for event creation (multi-field form with validation)
+- Implemented FullCalendar for week/month/day views
+- Added support for color-coded event tags and structural event toggles
+- Created working notification system 
+- Synced calendar events to homepage dashboard
+- Added productivity insights panel with upcoming event summary
 
 ## Quick Start
 ```bash
