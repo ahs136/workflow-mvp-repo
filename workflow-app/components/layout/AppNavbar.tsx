@@ -19,16 +19,16 @@ export default function AppNavbar() {
               Calendar
             </Link>
             <Link 
+              href="/plan"
+              className="text-text font-medium px-3 py-2 rounded-lg hover:bg-primary/5 hover:text-primary transition-colors"
+            >
+              Plan
+            </Link>
+            <Link 
               href="/productivity"
               className="text-text font-medium px-3 py-2 rounded-lg hover:bg-primary/5 hover:text-primary transition-colors"
             >
               Productivity
-            </Link>
-            <Link 
-              href="/settings"
-              className="text-text font-medium px-3 py-2 rounded-lg hover:bg-primary/5 hover:text-primary transition-colors"
-            >
-              Settings
             </Link>
             <Link 
               href="/profile"

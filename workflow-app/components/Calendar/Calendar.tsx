@@ -6,6 +6,7 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import { EventInput, DatesSetArg } from '@fullcalendar/core';
+import { nanoid } from 'nanoid';
 
 export default function Calendar() {
 
@@ -32,6 +33,7 @@ export default function Calendar() {
   const [parseInput, setParseInput] = useState('');
 
   const [formData, setFormData] = useState({
+    id: nanoid(),
     title: '',
     description: '',
     start: '',
@@ -66,14 +68,22 @@ export default function Calendar() {
     if (stored) {
       const parsedEvents = JSON.parse(stored).map((event: any) => {
         const tagColor = defaultTagColors[event.extendedProps?.tag] || '#3b82f6';
-        return {
+  
+        // If old events don’t have `id`, generate one now
+        const eventWithId = {
+          id: event.id || nanoid(),
           ...event,
           start: new Date(event.start),
           end: event.end ? new Date(event.end) : undefined,
           backgroundColor: event.backgroundColor || tagColor,
           color: '#fff',
         };
+  
+        return eventWithId;
       });
+  
+      // Save updated events (with IDs) back to localStorage
+      localStorage.setItem('calendarEvents', JSON.stringify(parsedEvents));
       setEvents(parsedEvents);
     }
   }, []);
@@ -120,6 +130,7 @@ export default function Calendar() {
 
   const resetForm = () => {
     setFormData({
+      id: nanoid(),
       title: '',
       description: '',
       start: '',
@@ -152,6 +163,7 @@ export default function Calendar() {
     if (!event) return;
     setSelectedEvent(event);
     setFormData({
+      id: event.id || nanoid(),
       title: event.title as string,
       description: event.extendedProps?.description || '',
       start: typeof event.start === 'string' ? event.start : formatDateForInput(new Date(event.start as any)),
@@ -182,7 +194,7 @@ export default function Calendar() {
     const eventColor = formData.color === defaultTagColors[selectedEvent?.extendedProps?.tag || ''] ? tagColor : formData.color;
 
     const newEvent: EventInput = {
-      id: selectedEvent?.id || String(Date.now()),
+      id: nanoid(),
       title: formData.title,
       start: new Date(formData.start),
       end: formData.end ? new Date(formData.end) : undefined,
@@ -255,6 +267,7 @@ export default function Calendar() {
     if (!parseInput.trim()) {
 
       setFormData({
+        id: nanoid(),
         title: '',
         description: '',
         start: '',
@@ -271,7 +284,7 @@ export default function Calendar() {
       return;
     }
     try {
-      const res = await fetch('/api/parse-events', {
+      const res = await fetch('/api/assistant/parse-events', {
         method: 'POST',
         body: JSON.stringify({ userInput: parseInput }),
       });
@@ -279,6 +292,7 @@ export default function Calendar() {
       const { result } = await res.json();
 
       setFormData({
+        id: nanoid(),
         title: result.title,
         description: result.description || '',
         start: result.start.slice(0, 16),
