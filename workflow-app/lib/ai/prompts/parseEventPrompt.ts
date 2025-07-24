@@ -1,93 +1,117 @@
-// lib/ai/prompts/parseEventPrompt.ts
 export function generateParseEventPrompt(userInput: string, now: string, type: string = "calendar-event"): string {
     return `
-    Parse the following ${type} description into a JSON object with the exact fields:
-    {
-      "title": string,              // required, brief event name (don't include the date or time in the title)
-      "description": string,        // optional, details about the event
-      "start": string,              // required, start date/time in ISO 8601 format if possible
-      "end": string,                // optional, end date/time in ISO 8601 format, if not specified, assume 1 hour after start
-      "location": string,           // optional
-      "reminder": string,           // required, choose from: "10 minutes before", "1 hour before", "1 day before", "2 days before", or "none"
-                                    // Set to "none" ONLY if the user gives no clear request or hint. If the user uses phrases like:
-                                    // "remind me", "set an alert", "don't let me forget", "wake me up", "warn me before", or mentions a time to be reminded,
-                                    // then choose the best matching option. If it's unclear but a reminder feels implied (like for early meetings, deadlines, etc.), choose "1 hour before" or "1 day before" by default.
-      "tag": string,                // required, event category, choose from "deadline", "meeting", "class", "focus", "workout", "social", "personal"
-      "color": string,              // required, hex or color name matching tag
-      "isStructural": boolean,      // optional, true/false, for recurring events built into schedule that can't be missed or changed like classes, meetings, etc.
-      "isNonNegotiable": boolean    // optional, true/false, for events that are important to the user and need to be prioritized. 
-                                    // These can be workouts or hobbies that are goal oriented or strictly scheduled (not just a random workout or just for fun). 
-                                    // Also praying, social obligations (like calling family), nap time, focus time for deepwork etc. 
-                                    // (usually not related to work or school). anything the user indicates as important should be true. 
-                                    // If the user doesn't indicate anything as important, default to false. If the user indicates something as important, default to true.
-                                    // Clarify common misconceptions:
-                                    // Do NOT assume all workouts are non-negotiable. Only mark isNonNegotiable as true if user uses strong language (e.g., "must", "need to", "important", "can't skip", "goal", etc.)
-                                    // If user casually mentions "go to the gym" or "do a workout", without urgency or importance, set isNonNegotiable to false.
-    }   
+Parse the following ${type} description into a JSON object with these exact fields:
+
+{
+  "title": string,              // required — A short, clear title (do not include any date/time here)
+  "description": string,        // optional — Extra details about the event
+  "start": string,              // required — ISO 8601 datetime format (e.g., "2025-07-25T14:00:00-04:00")
+  "end": string,                // optional — ISO 8601 datetime (default to 1 hour after start if not provided)
+  "location": string,           // optional — e.g., "Zoom", "Library", "Gym"
+  "reminder": string,           // required — One of: "10 minutes before", "1 hour before", "1 day before", "2 days before", or "none"
+  "tag": string,                // required — One of: "deadline", "meeting", "class", "focus", "workout", "social", "personal"
+  "color": string,              // required — HEX color code based on tag:
+                                //   - "deadline": "#FF6B6B"
+                                //   - "meeting": "#1E90FF"
+                                //   - "class": "#6A5ACD"
+                                //   - "focus": "#20B2AA"
+                                //   - "workout": "#FF8C00"
+                                //   - "social": "#DA70D6"
+                                //   - "personal": "#32CD32"
+  "repeat": string,             // required — One of: 'none'|'daily'|'weekdays'|'weekly'|'customDays'
+                                // if the user hints at a recurring event you must set "repeat" to one of the above to access the "byDay" field.
+  "repeatUntil": string,        // optional — ISO 8601 end date for recurrence (e.g., "2025-08-30")
+  "byDay": string[],            // optional — Array of weekday codes for weekly repeat (e.g., ["MO", "WE", "FR"])
+  "isStructural": boolean,      // optional — true if this is a fixed recurring event like a class or meeting
+  "isNonNegotiable": boolean    // optional — true if this is a personal obligation you will not reschedule (like a personal workout or family dinner)
+}
+
+Only return valid JSON. If any required information is missing, make a reasonable assumption or clearly state the missing fields in a separate "note" field at the end of the JSON.
+
   
-    Only respond with the raw JSON object, no explanation or extra text.
+  Timezone: Eastern (EST). Dates should use ISO 8601 with -04:00 offset.
+  Use today's date/time as reference: ${now}
   
-    For the "color" field, use the following hex codes based on the "tag":
-      deadline: #dc2626  
-      meeting: #8b5cf6  
-      class: #1d4ed8  
-      focus: #ede8d0  
-      workout: #03c04a  
-      social: #ff8da1  
-      personal: #6b7280  
+  ---
   
-    The current date/time is: ${now}.
-    If the description only contains a weekday, interpret it as the next upcoming weekday from today's date. Use current date and year.
-    Assume timezone Eastern Standard Time (EST). Format dates in ISO 8601 with timezone offset -04:00 UTC.
-    If the description contains a time (later than ${now}), but no date, assume the event is happening today.
+  ### Reminder Parsing
   
-    Here are some example outputs:
+  If the user mentions:
+  - "remind me", "set an alert", "don't let me forget", or urgency: choose appropriate reminder.
+  - No mention: default to "none" unless the event feels important (early morning, deadlines, etc.).
   
-    User: "Doctor appointment at 3pm tomorrow, remind me 10 minutes before"  
-    Output: {
-      "title": "Doctor appointment",
-      "start": "...",
-      ...
-      "reminder": "10 minutes before",
-      ...
-    }
+  ---
   
-    User: "Quick massage at 10am"  
-    Output: {
-      ...
-      "tag": "personal",
-      "reminder": "1 day before"
-    }
+  ### Recurrence Rules
   
-    User: "Morning run on Sunday at 8am"  
-    Output: {
-      ...
-      "tag": "workout",
-      "reminder": "1 hour before"
-    }
+  1. If the event is recurring:
+     - Set "repeat" to either "daily" or "weekly"
+     - Set "repeatUntil" if the user says "until", "through", or gives an end date.
+     - Always include "byDay" **only when** "repeat": "weekly"
+     - If "repeat": "weekly" → must include "byDay" → must set "isStructural": true
   
-    User: "Project deadline Friday at 6pm"  
-    Output: {
-      ...
-      "tag": "deadline",
-      "reminder": "1 day before"
-    }
+  2. If user says:
+     - "every day", "daily", or "each day" → set "repeat": "daily", no "byDay"
+     - "weekdays", "every weekday" → set "repeat": "weekly", "byDay": ["MO", "TU", "WE", "TH", "FR"]
+     - "MWF", "Mon/Wed/Fri" → parse those days into "byDay"
+     - "weekly" only (no days) → set "byDay" based on the weekday of "start" date
+     - "every Monday and Wednesday" → parse as ["MO", "WE"]
+     - If recurrence mentioned, but ambiguous → err toward "weekly" with inferred "byDay"
   
-    User: "hang out with Sarah"  
-    Output: {
-      ...
-      "tag": "social",
-      "reminder": "none"
-    }
+  ---
   
-    User: "call dad for 15 minutes at 10pm"  
-    Output: {
-      ...
-      "tag": "social",
-      "reminder": "none"
-    }
+  ### Color Tags
   
-    Event description: "${userInput}"
+  Use these colors based on tag:
+  - deadline: #dc2626  
+  - meeting: #8b5cf6  
+  - class: #1d4ed8  
+  - focus: #ede8d0  
+  - workout: #03c04a  
+  - social: #ff8da1  
+  - personal: #6b7280  
+  
+  ---
+  
+  ### Examples
+  
+  User: "CS class on MWF at 2pm until Dec 1"  
+  →
+  {
+    "title": "CS Class",
+    "start": "2025-07-24T14:00:00-04:00",
+    "end": "2025-07-24T15:00:00-04:00",
+    "repeat": "weekly",
+    "byDay": ["MO", "WE", "FR"],
+    "repeatUntil": "2025-12-01",
+    "isStructural": true,
+    ...
+  }
+  
+  User: "Run every weekday at 7am"  
+  →
+  {
+    "title": "Run",
+    "start": "...",
+    "repeat": "weekly",
+    "byDay": ["MO", "TU", "WE", "TH", "FR"],
+    ...
+  }
+  
+  User: "Team sync every week at 10am starting Thursday"  
+  →
+  {
+    "title": "Team Sync",
+    "start": "...",
+    "repeat": "weekly",
+    "byDay": ["TH"],
+    "isStructural": true,
+    ...
+  }
+  
+  ---
+  
+  Event description: "${userInput}"
     `;
   }
   

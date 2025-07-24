@@ -20,6 +20,77 @@ export default function Plan() {
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [currentEvents, setCurrentEvents] = useState<any[]>([]);
+  const [feedbackTargetId, setFeedbackTargetId] = useState<string | null>(null);
+  const [feedbackValue, setFeedbackValue] = useState('');
+
+  const handleFeedbackClick = (id: string) => {
+    setFeedbackTargetId(id);
+    setFeedbackValue('');
+  };
+  
+  const handleFeedbackSubmit = async (e: React.FormEvent, msgId: string) => {
+    e.preventDefault();
+    if (!feedbackValue.trim() || isLoading) return;
+  
+    const userCorrection = feedbackValue.trim();
+    setFeedbackValue('');
+    setFeedbackTargetId(null);
+    setIsLoading(true);
+  
+    const userMessage = 'Correction: ' + userCorrection;
+    const session = sessions[currentSessionId!];
+    const timestamp = new Date().toISOString();
+  
+    const correctionMessage: Message = {
+      id: nanoid(),
+      content: userMessage,
+      role: 'user',
+      timestamp
+    };
+  
+    const updatedMessages = [...session.messages, correctionMessage];
+    const updatedSession = { ...session, messages: updatedMessages };
+  
+    setSessions(prev => ({
+      ...prev,
+      [currentSessionId!]: updatedSession
+    }));
+  
+    try {
+      const res = await fetch('/api/assistant/plan-events', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userMessage: userMessage,
+          userCorrection: userCorrection,
+          currentEvents
+        }),
+      });
+  
+      const assistantText = await res.text();
+  
+      const assistantMessage: Message = {
+        id: nanoid(),
+        content: assistantText,
+        role: 'assistant',
+        timestamp: new Date().toISOString(),
+      };
+  
+      setSessions(prev => ({
+        ...prev,
+        [currentSessionId!]: {
+          ...prev[currentSessionId!],
+          messages: [...prev[currentSessionId!].messages, assistantMessage],
+        },
+      }));
+  
+      setIsLoading(false);
+    } catch (err) {
+      console.error('Failed to submit correction', err);
+      setIsLoading(false);
+    }
+  };
+  
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -253,7 +324,33 @@ export default function Plan() {
               <div className={`max-w-xl p-3 rounded-2xl text-sm ${
                 msg.role === 'user' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-800'
               }`}>
+                <div>
                 <p>{msg.content}</p>
+
+                {msg.role === 'assistant' && (
+                    <button
+                    className="mt-2 text-xs text-blue-600 hover:underline"
+                    onClick={() => handleFeedbackClick(msg.id)}
+                    >
+                    Give Feedback
+                    </button>
+                )}
+
+                {feedbackTargetId === msg.id && (
+                    <form onSubmit={e => handleFeedbackSubmit(e, msg.id)} className="mt-2">
+                    <input
+                        type="text"
+                        value={feedbackValue}
+                        onChange={e => setFeedbackValue(e.target.value)}
+                        className="w-full p-1 text-sm border rounded"
+                        placeholder="What did the assistant get wrong?"
+                    />
+                    <button type="submit" className="mt-1 text-xs text-green-600 hover:underline">
+                        Submit Feedback
+                    </button>
+                    </form>
+                )}
+                </div>
                 <div className={`text-xs mt-1 ${msg.role === 'user' ? 'text-white' : 'text-gray-500'}`}>
                   {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </div>

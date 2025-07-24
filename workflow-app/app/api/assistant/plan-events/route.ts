@@ -1,40 +1,45 @@
-// app/api/assistant/plan-events/route.ts
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
-import { generatePlanEventPrompt } from '@/lib/ai/prompts/planEventPrompt';
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+let chatHistory: { role: 'system'|'user'|'assistant', content: string }[] = [
+  {
+    role: 'system',
+    content: `You are a helpful and curious planning assistant. Use current calendar events (provided by the user) to suggest plans, identify conflicts, and manage deadlines.`,
+  },
+];
 
 export async function POST(req: Request) {
   try {
     const { userMessage, currentEvents } = await req.json();
 
-    console.log('currentEvents:', JSON.stringify(currentEvents, null, 2));
-    
-    if (!userMessage) {
-      return NextResponse.json({ error: 'Missing userMessage' }, { status: 400 });
+    // Only insert currentEvents once if not already added
+    const alreadyHasEvents = chatHistory.some(m =>
+      m.content.includes('"title"') && m.role === 'user'
+    );
+    if (!alreadyHasEvents && currentEvents) {
+      chatHistory.push({
+        role: 'user',
+        content: `Here are my current events:\n\n${JSON.stringify(currentEvents, null, 2)}`,
+      });
     }
 
-    // Build the system prompt
-    const prompt = generatePlanEventPrompt({ userInput: userMessage, currentEvents });
+    // Add the new user message
+    chatHistory.push({ role: 'user', content: userMessage });
 
-    // Ask the model *without* streaming
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [
-        { role: 'system', content: prompt },
-        { role: 'user',   content: userMessage },
-      ],
+      model: 'gpt-4o',
+      messages: chatHistory,
       temperature: 0.7,
       max_tokens: 1000,
-      stream: false,
     });
 
-    // Extract the assistant’s reply
-    const assistantText = completion.choices[0]?.message?.content ?? '';
+    const reply = completion.choices[0]?.message?.content ?? '';
 
-    // Return it as plain text
-    return new NextResponse(assistantText, {
+    chatHistory.push({ role: 'assistant', content: reply });
+
+    return new NextResponse(reply, {
       status: 200,
       headers: { 'Content-Type': 'text/plain; charset=utf-8' },
     });
