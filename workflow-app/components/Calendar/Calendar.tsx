@@ -8,6 +8,7 @@ import interactionPlugin from '@fullcalendar/interaction';
 import { EventInput, DatesSetArg } from '@fullcalendar/core';
 import { nanoid } from 'nanoid';
 import { generateRecurringEvents } from '@/lib/utils/generateRecurringEvents';
+import { Event, useEventContext } from '@/app/context/EventContext';
 
 export default function Calendar() {
   const calendarRef = useRef<FullCalendar>(null);
@@ -23,15 +24,15 @@ export default function Calendar() {
   };
 
   // --- State ---
-  const [events,           setEvents]           = useState<EventInput[]>([]);
-  const [currentDate,     setCurrentDate]      = useState<Date>(new Date());
-  const [isFormOpen,      setIsFormOpen]       = useState(false);
-  const [selectedEvent,   setSelectedEvent]    = useState<EventInput|null>(null);
-  const [calendarHeight,  setCalendarHeight]   = useState(650);
-  const [selectedTag,     setSelectedTag]      = useState('all');
-  const [structuralViewOn,setStructuralViewOn] = useState(false);
-  const [parseInput,      setParseInput]       = useState('');
-
+  const { events, setEvents } = useEventContext();
+  const [currentDate, setCurrentDate] = useState<Date>(new Date());
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<EventInput|null>(null);
+  const [calendarHeight, setCalendarHeight] = useState(650);
+  const [selectedTag, setSelectedTag]= useState('all');
+  const [structuralViewOn, setStructuralViewOn] = useState(false);
+  const [parseInput, setParseInput] = useState('');
+  const [parsedEvent, setParsedEvent] = useState<EventInput|null>(null);
   const [formData, setFormData] = useState({
     id:          nanoid(),
     title:       '',
@@ -61,23 +62,31 @@ export default function Calendar() {
   }, []);
 
   useEffect(() => {
-    // load from localStorage
-    const stored = localStorage.getItem('calendarEvents');
-    if (stored) {
-      const parsed = JSON.parse(stored).map((e: any) => {
-        const tagColor = defaultTagColors[e.extendedProps?.tag] || '#3b82f6';
-        return {
-          id:             e.id || nanoid(),
-          ...e,
-          start:          new Date(e.start),
-          end:            e.end ? new Date(e.end) : undefined,
-          backgroundColor:e.backgroundColor || tagColor,
-          color:          '#fff',
-        };
+    if (parsedEvent) {
+      setIsFormOpen(true);
+
+      setFormData({
+        id: nanoid(),
+        title: parsedEvent.title || '',
+        start: parsedEvent.start ? toDatetimeLocal(parsedEvent.start as string) : '',
+        end: parsedEvent.end ? toDatetimeLocal(parsedEvent.end as string) : '',
+        // @ts-ignore
+        description: parsedEvent.description || '',
+        location: parsedEvent.location || '',
+        tag: parsedEvent.tag || '',
+        color: parsedEvent.color || '#000000',
+        repeat: parsedEvent.repeat || 'none',
+        byDay: parsedEvent.byDay || [],
+        reminder: parsedEvent.reminder || 'none',
+        isStructural: parsedEvent.isStructural || false,
+        isNonNegotiable: parsedEvent.isNonNegotiable || false,
+        repeatUntil: parsedEvent.repeatUntil || '',
       });
-      setEvents(parsed);
+      setIsFormOpen(true);
+      setParsedEvent(null);
+      setParseInput('');
     }
-  }, []);
+  }, [parsedEvent]);
 
   // --- Helpers ---
   function saveEventsToLocalStorage(evts: EventInput[]) {
@@ -156,25 +165,31 @@ export default function Calendar() {
   const handleEventClick = (info: any) => {
     const ev = events.find((e) => e.id === info.event.id);
     if (!ev) return;
+  
+    const tag = ev.extendedProps?.tag || 'deadline';
+    const color = ev.backgroundColor || defaultTagColors[tag];
+  
     setSelectedEvent(ev);
     setFormData({
       id:             ev.id || nanoid(),
       title:          ev.title as string,
       description:    ev.extendedProps?.description || '',
-      start:          typeof ev.start === 'string' ? ev.start : formatDateForInput(new Date(ev.start as any)),
-      end:            ev.end   ? (typeof ev.end === 'string' ? ev.end : formatDateForInput(new Date(ev.end as any))) : '',
+      start:          typeof ev.start === 'string' ? ev.start : formatDateForInput(new Date(ev.start)),
+      end:            ev.end ? (typeof ev.end === 'string' ? ev.end : formatDateForInput(new Date(ev.end))) : '',
       location:       ev.extendedProps?.location || '',
       reminder:       ev.extendedProps?.reminder || 'none',
-      tag:            ev.extendedProps?.tag || 'deadline',
-      color:          ev.backgroundColor || defaultTagColors[ev.extendedProps?.tag] || '#3b82f6',
+      tag:            tag,
+      color:          color,
       isStructural:   ev.extendedProps?.isStructural || false,
       isNonNegotiable:ev.extendedProps?.isNonNegotiable || false,
-      repeat: ev.repeat || 'none',
-      repeatUntil: ev.repeatUntil || '',
-      byDay: ev.byDay || [],
+      repeat:         ev.repeat || 'none',
+      repeatUntil:    ev.repeatUntil || '',
+      byDay:          ev.byDay || [],
     });
+  
     setIsFormOpen(true);
   };
+  
 
   const handleEventDrop = (info: any) => {
     const updated: EventInput = {
@@ -187,8 +202,8 @@ export default function Calendar() {
       extendedProps:  { ...info.event.extendedProps },
     };
     const updatedList = events.map((e) => (e.id === updated.id ? updated : e));
-    setEvents(updatedList);
-    saveEventsToLocalStorage(updatedList);
+    setEvents(updatedList as Event[]);
+    saveEventsToLocalStorage(updatedList as EventInput[]);
     scheduleReminder(updated);
   };
 
@@ -199,11 +214,9 @@ export default function Calendar() {
       return;
     }
   
-    const tagColor = defaultTagColors[formData.tag];
-    const bgColor = formData.color === defaultTagColors[selectedEvent?.extendedProps?.tag || '']
-      ? tagColor
-      : formData.color;
-  
+    const bgColor = defaultTagColors[formData.tag] || '#3b82f6';
+
+    
     // Use selectedEvent.id if editing, otherwise generate a new one
     const baseId = selectedEvent?.id ?? nanoid();
   
@@ -228,31 +241,35 @@ export default function Calendar() {
       byDay: formData.byDay,
     } as any;
   
+      // Remove old base + recurrences by filtering events out
+  const cleanedEvents = events.filter(
+    (e) => e.id !== baseId && e.groupId !== baseId
+  );
+
     // Generate recurrences
     const recurrences = generateRecurringEvents(base as any);
+
+  // Assign groupId to recurrences so they belong to base
+  const recurrencesWithGroupId = recurrences.map((e) => ({
+    ...e,
+    groupId: baseId,
+  }));
   
-    // Filter out any old events with this base ID if editing
-    const cleaned = selectedEvent
-      ? events.filter((e) => e.id !== selectedEvent.id && e.groupId !== selectedEvent.id)
-      : [...events];
-  
-    // Assign groupId to recurrences so they can be managed as a group
-    const instances = recurrences.map((e) => ({ ...e, groupId: baseId }));
-  
-    const updatedEvents = [...cleaned, base, ...instances];
-    setEvents(updatedEvents);
-    saveEventsToLocalStorage(updatedEvents);
-    [base, ...instances].forEach(scheduleReminder);
-  
-    resetForm();
-  };
+  const updatedEvents = [...cleanedEvents, base, ...recurrencesWithGroupId];
+
+  setEvents(updatedEvents as Event[]);
+  saveEventsToLocalStorage(updatedEvents as EventInput[]);
+  [base, ...recurrencesWithGroupId].forEach(scheduleReminder);
+
+  resetForm();
+};
   
 
   const handleDelete = () => {
     if (!selectedEvent) return;
     const filtered = events.filter((e) => e.id !== selectedEvent.id);
-    setEvents(filtered);
-    saveEventsToLocalStorage(filtered);
+    setEvents(filtered as Event[]);
+    saveEventsToLocalStorage(filtered as EventInput[]);
     resetForm();
   };
 
@@ -262,10 +279,10 @@ export default function Calendar() {
   // Render event content on calendar
   function renderEventContent(eventInfo: any) {
     const { event } = eventInfo;
-    const description = event.extendedProps.description || '';
+    const description = event.description || '';
     const title = event.title || '';
-    const tag = event.extendedProps.tag || 'general';
-    const bgColor = event.backgroundColor || '#3b82f6';
+    const tag = event.tag || 'deadline';
+    const bgColor = event.backgroundColor || defaultTagColors[tag];
     const textColor = event.textColor || '#fff';
 
     const formatTime = (date: Date | null) => {
@@ -276,6 +293,8 @@ export default function Calendar() {
     const startTimeStr = formatTime(event.start);
     const endTimeStr = formatTime(event.end);
     const timeRange = endTimeStr ? `${startTimeStr} - ${endTimeStr}` : startTimeStr;
+
+
 
     return (
       <div
@@ -302,7 +321,7 @@ export default function Calendar() {
               whiteSpace: 'nowrap',
             }}
           >
-            {tag}
+            {event.extendedProps?.tag}
           </div>
         </div>
         <div style={{ fontSize: '1rem', fontWeight: 600 }}>{title}</div>
@@ -332,43 +351,44 @@ export default function Calendar() {
     : events.filter(ev => ev.extendedProps?.tag === selectedTag);
 
   // Parse natural language event input (calls your API)
-  async function handleParseEvent() {
+  const handleParseEvent = async () => {
     if (!parseInput.trim()) {
       resetForm();
       setIsFormOpen(true);
       return;
     }
+  
     try {
       const res = await fetch('/api/assistant/parse-events', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userInput: parseInput }),
       });
+  
       const { result } = await res.json();
-
-      setFormData({
-        id: nanoid(),
-        title: result.title,
-        description: result.description || '',
-        start: result.start.slice(0, 16),
-        end: result.end.slice(0, 16),
-        location: result.location || '',
-        reminder: result.reminder || 'none',
-        tag: result.tag.toLowerCase(),
-        color: defaultTagColors[result.tag.toLowerCase()] || '#3b82f6',
-        isStructural: result.isStructural || false,
-        isNonNegotiable: result.isNonNegotiable || false,
-        repeat: result.repeat || 'none',
-        repeatUntil: result.repeatUntil || '',
-        byDay: result.byDay || [],
-      });
-      setSelectedEvent(null);
-      setIsFormOpen(true);
-      setParseInput('');
+  
+      if (!result || !result.title || !result.start) {
+        console.error('Invalid event from AI');
+        return;
+      }
+  
+      // ✅ Let the useEffect handle opening and filling
+      setParsedEvent(result);
+  
     } catch (err) {
-      console.error(err);
-      alert('Failed to parse event. Please try again.');
+      console.error('Failed to parse event', err);
     }
+  };
+  
+
+  function toDatetimeLocal(dateString: string | Date): string {
+    const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
+    const offset = date.getTimezoneOffset();
+    const local = new Date(date.getTime() - offset * 60 * 1000);
+    return local.toISOString().slice(0, 16); // 'YYYY-MM-DDTHH:MM'
   }
+  
+  
 
   return (
     <div className="relative w-full p-4 bg-white rounded-lg shadow-lg h-[750px] flex flex-col">
@@ -436,7 +456,7 @@ export default function Calendar() {
             className="px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition"
             onClick={() => {
               localStorage.removeItem('calendarEvents');
-              setEvents([]);
+              setEvents([] as Event[]);
             }}
           >
             Clear All Events

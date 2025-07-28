@@ -11,7 +11,9 @@ const now = new Date().toISOString();
 
 export async function POST(req: Request) {
   try {
-    const { userInput } = await req.json();
+    const body = await req.json();
+    const { userInput } = body;
+
 
     const prompt = generateParseEventPrompt(userInput, now, "calendar-event");
 
@@ -19,6 +21,7 @@ export async function POST(req: Request) {
       model: "gpt-4o-mini",
       messages: [{ role: "user", content: prompt }],
       temperature: 0.7,
+      max_tokens: 1000,
     });
 
     const raw = completion.choices[0].message.content;
@@ -30,6 +33,10 @@ export async function POST(req: Request) {
       console.error("GPT returned invalid JSON:", e);
       throw new Error("Invalid JSON from AI");
     }
+
+    // API route after parsing body
+console.log("Received userInput:", parsed);
+
 
     const reminderMap: Record<string, string> = {
       "10 minutes before": "10m",

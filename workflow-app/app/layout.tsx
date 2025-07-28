@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import { EventProvider } from "./context/EventContext";
 import "../styles/globals.css";
 import '../styles/fullcalendar-daygrid.css';
 import '../styles/fullcalendar-timegrid.css';
@@ -28,7 +29,9 @@ export default function RootLayout({
     <html lang="en" className={inter.variable}>
       <body className={`${inter.className} antialiased`}>
         <main className="min-h-0 bg-gray-50">
-          {children}
+          <EventProvider>
+            {children}
+          </EventProvider>
         </main>
       </body>
     </html>

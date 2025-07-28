@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useEventContext } from '../context/EventContext';
 import Calendar from '@/components/Calendar/Calendar';
 import AppNavbar from '@/components/layout/AppNavbar';
 
 export default function CalendarPage() {
+  const {events, setEvents} = useEventContext();
   return (
     <div className="min-h-screen p-4 bg-white">
       <AppNavbar />

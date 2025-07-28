@@ -1,3 +1,4 @@
+
 export function generateParseEventPrompt(userInput: string, now: string, type: string = "calendar-event"): string {
     return `
 Parse the following ${type} description into a JSON object with these exact fields:
@@ -19,7 +20,7 @@ Parse the following ${type} description into a JSON object with these exact fiel
                                 //   - "social": "#DA70D6"
                                 //   - "personal": "#32CD32"
   "repeat": string,             // required — One of: 'none'|'daily'|'weekdays'|'weekly'|'customDays'
-                                // if the user hints at a recurring event you must set "repeat" to one of the above to access the "byDay" field.
+                                // if the user hints at a recurring event you must set "repeat" to one of the above to access the "byDay" field. otherwise set to "none" and do not include "byDay", choosing the date by selecting a start string.
   "repeatUntil": string,        // optional — ISO 8601 end date for recurrence (e.g., "2025-08-30")
   "byDay": string[],            // optional — Array of weekday codes for weekly repeat (e.g., ["MO", "WE", "FR"])
   "isStructural": boolean,      // optional — true if this is a fixed recurring event like a class or meeting

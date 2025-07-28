@@ -29,7 +29,7 @@ export async function POST(req: Request) {
     chatHistory.push({ role: 'user', content: userMessage });
 
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4o',
+      model: 'gpt-4o-mini',
       messages: chatHistory,
       temperature: 0.7,
       max_tokens: 1000,

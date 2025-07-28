@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import Plan from '@/components/Plan/Plan';
 import AppNavbar from '@/components/layout/AppNavbar';
-
+import { useEventContext } from '../context/EventContext';
 
 export default function PlanPage() {
+  const {events, setEvents} = useEventContext();
+
   return (
     <div className="min-h-screen p-4 bg-white">
       <AppNavbar />
