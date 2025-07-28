@@ -1,50 +1,62 @@
-import { NextResponse } from 'next/server';
-import OpenAI from 'openai';
+import { NextRequest, NextResponse } from "next/server";
+import { OpenAI } from "openai";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+import { generatePlanEventPrompt } from "@/lib/ai/prompts/planEventPrompt";
+import { generateSmartEventPlannerPrompt } from "@/lib/ai/prompts/smartEventPlannerPrompt";
 
-let chatHistory: { role: 'system'|'user'|'assistant', content: string }[] = [
-  {
-    role: 'system',
-    content: `You are a helpful and curious planning assistant. Use current calendar events (provided by the user) to suggest plans, identify conflicts, and manage deadlines.`,
-  },
-];
 
-export async function POST(req: Request) {
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+export async function POST(req: NextRequest) {
+  const body = await req.json();
+  const { mode, userInput, currentEvents, lastResponse, userFeedback } = body;
+
+  if (!userInput && !userFeedback) {
+    return NextResponse.json({ error: "No userInput provided" }, { status: 400 });
+  }
+
+  let prompt = "";
+
+  if (mode === "parse") {
+    prompt = generatePlanEventPrompt({
+      userInput,
+      currentEvents,
+      lastResponse,
+      userFeedback,
+    });
+  } else if (mode === "plan") {
+    prompt = generateSmartEventPlannerPrompt({
+      userInput,
+      currentEvents,
+    });
+  } else {
+    return NextResponse.json({ error: "Invalid mode" }, { status: 400 });
+  }
+
   try {
-    const { userMessage, currentEvents } = await req.json();
-
-    // Only insert currentEvents once if not already added
-    const alreadyHasEvents = chatHistory.some(m =>
-      m.content.includes('"title"') && m.role === 'user'
-    );
-    if (!alreadyHasEvents && currentEvents) {
-      chatHistory.push({
-        role: 'user',
-        content: `Here are my current events:\n\n${JSON.stringify(currentEvents, null, 2)}`,
-      });
-    }
-
-    // Add the new user message
-    chatHistory.push({ role: 'user', content: userMessage });
-
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: chatHistory,
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: "You are a helpful assistant." },
+        { role: "user", content: prompt },
+      ],
       temperature: 0.7,
       max_tokens: 1000,
     });
 
-    const reply = completion.choices[0]?.message?.content ?? '';
+    const result = completion.choices[0].message?.content || "";
 
-    chatHistory.push({ role: 'assistant', content: reply });
+    console.log('Mode:', mode);
+    console.log('User input:', userInput);
+    console.log('OpenAI result:', result);
 
-    return new NextResponse(reply, {
-      status: 200,
-      headers: { 'Content-Type': 'text/plain; charset=utf-8' },
-    });
-  } catch (err) {
-    console.error('[PLAN_EVENTS_ERROR]', err);
-    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
+
+    return NextResponse.json({ result });
+  } catch (error) { 
+    console.error("OpenAI API error:", error);
+    return NextResponse.json({ error: "OpenAI request failed" }, { status: 500 });
   }
 }

@@ -15,13 +15,43 @@ interface Message {
 const STORAGE_SESSIONS_KEY = 'planningChatSessions';
 
 export default function Plan() {
-  const [sessions, setSessions] = useState<Record<string, { title: string; messages: Message[] }>>({});
-  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [currentEvents, setCurrentEvents] = useState<any[]>([]);
   const [feedbackTargetId, setFeedbackTargetId] = useState<string | null>(null);
   const [feedbackValue, setFeedbackValue] = useState('');
+  const [mode, setMode] = useState<'parse' | 'plan'>('parse');
+
+  interface Session {
+    title: string;
+    messages: Message[];
+  }
+  
+  const [sessions, setSessions] = useState<Record<string, Session>>(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("planner_sessions");
+      return stored ? JSON.parse(stored) : {};
+    }
+    return {};
+  });
+
+  const [currentSessionId, setCurrentSessionId] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("planner_current_session_id") || null;
+    }
+    return null;
+  });
+  
+
+  useEffect(() => {
+    localStorage.setItem("planner_sessions", JSON.stringify(sessions));
+  }, [sessions]);
+  
+
+  useEffect(() => {
+    localStorage.setItem("planner_current_session_id", currentSessionId || "");
+  }, [currentSessionId]);
+  
 
   const handleFeedbackClick = (id: string) => {
     setFeedbackTargetId(id);
@@ -37,7 +67,7 @@ export default function Plan() {
     setFeedbackTargetId(null);
     setIsLoading(true);
   
-    const userMessage = 'Correction: ' + userCorrection;
+    const userMessage = userCorrection;
     const session = sessions[currentSessionId!];
     const timestamp = new Date().toISOString();
   
@@ -52,18 +82,25 @@ export default function Plan() {
     const updatedSession = { ...session, messages: updatedMessages };
   
     setSessions(prev => ({
-      ...prev,
-      [currentSessionId!]: updatedSession
-    }));
+        ...prev,
+        [currentSessionId!]: {
+          ...prev[currentSessionId!],
+          lastUpdated: Date.now(),
+          messages: [...prev[currentSessionId!].messages, correctionMessage],
+        }
+      }));
+      
   
     try {
       const res = await fetch('/api/assistant/plan-events', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userMessage: userMessage,
-          userCorrection: userCorrection,
-          currentEvents
+          userInput: userCorrection,
+          userFeedback: userCorrection,
+          currentEvents,
+          lastResponse: session.messages[session.messages.length - 1].content,
+          mode
         }),
       });
   
@@ -218,66 +255,76 @@ export default function Plan() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputValue.trim() || isLoading) return;
-
+  
     const id = currentSessionId || nanoid();
-    const newTitle = inputValue.trim().split(/\s+/).slice(0, 5).join(' ');
+    const newTitle = inputValue.trim().split(/\s+/).slice(0, 5).join(' ');  
     const timestamp = new Date().toISOString();
-
+  
     const userMessage: Message = {
       id: nanoid(),
       content: inputValue,
       role: 'user',
       timestamp
     };
-
+  
     const session = sessions[id] || { title: 'New Plan', messages: [] };
     const updatedMessages = [...session.messages, userMessage];
     const updatedSession = {
       title: session.title.startsWith('New Plan') ? newTitle : session.title,
       messages: updatedMessages
     };
-
+  
     const newSessions = { ...sessions, [id]: updatedSession };
     setSessions(newSessions);
     setCurrentSessionId(id);
     setInputValue('');
     setIsLoading(true);
-
-    
+  
     try {
-        // inside handleSubmit()
-        const res = await fetch('/api/assistant/plan-events', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userMessage: inputValue, currentEvents }),
-        });
-        
-        // read plain text
-        const assistantText = await res.text();
-        
-        const assistantMessage: Message = {
-            id: nanoid(),
-            content: assistantText,
-            role: 'assistant',
-            timestamp: new Date().toISOString(),
-        };
-        
-        setSessions(prev => ({
-            ...prev,
-            [id]: {
-            ...prev[id],
-            messages: [...prev[id].messages, assistantMessage],
-            },
-        }));
-        setIsLoading(false);
+      // First fetch the response from the API
+      const res = await fetch('/api/assistant/plan-events', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userInput: inputValue, currentEvents, mode, lastResponse: session.messages[session.messages.length - 1].content }),
+      });
+  
+      let assistantText = '';
+  
+      if (mode === 'parse') {
+        // The API returns JSON like { result: "stringified JSON" }
+        const json = await res.json();
+        // Parse the stringified JSON inside `result`
+        const parsedInner = JSON.parse(json.result);
+        // Pretty-print JSON for display
+        assistantText = JSON.stringify(parsedInner, null, 2);
+      } else {
+        // For 'plan' mode, just get the plain text response
+        const json = await res.json();
+        assistantText = json.result;
+      }
+  
+      const assistantMessage: Message = {
+        id: nanoid(),
+        content: assistantText,
+        role: 'assistant',
+        timestamp: new Date().toISOString(),
+      };
+  
+      setSessions(prev => ({
+        ...prev,
+        [id]: {
+          ...prev[id],
+          messages: [...prev[id].messages, assistantMessage],
+        },
+      }));
+  
+      setIsLoading(false);
     } catch (err) {
-        console.error('Failed to parse event', err);
-        setIsLoading(false);
+      console.error('Failed to parse event', err);
+      setIsLoading(false);
     }
   };
-
-  const messages = currentSessionId ? sessions[currentSessionId]?.messages || [] : [];
-
+  
   return (
     <div className="flex h-full">
       {/* Sidebar */}
@@ -319,13 +366,22 @@ export default function Plan() {
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {messages.map(msg => (
-            <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-xl p-3 rounded-2xl text-sm ${
-                msg.role === 'user' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-800'
-              }`}>
-                <div>
-                <p>{msg.content}</p>
+            {(currentSessionId ? sessions[currentSessionId]?.messages || [] : []).map(msg => (
+        <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+            <div className={`max-w-xl p-3 rounded-2xl text-sm ${
+                msg.role === 'user' 
+                    ? 'bg-primary text-white' 
+                    : 'bg-gray-100 text-black'  // assistant messages always gray bg + black text
+                }`}>
+
+            <div>
+                {msg.role === 'assistant' && mode === 'plan' ? (
+                <pre className="whitespace-pre-wrap">{msg.content}</pre>
+                ) : (
+                    <pre className="whitespace-pre-wrap m-0 font-normal">{msg.content}</pre>
+
+                )}
+            </div>
 
                 {msg.role === 'assistant' && (
                     <button
@@ -351,15 +407,15 @@ export default function Plan() {
                     </form>
                 )}
                 </div>
-                <div className={`text-xs mt-1 ${msg.role === 'user' ? 'text-white' : 'text-gray-500'}`}>
+                <div className={`text-xs mt-2 ml-1 ${msg.role === 'user' ? 'text-white' : 'text-gray-500'}`}>
                   {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </div>
               </div>
-            </div>
-          ))}
-          {isLoading && <div className="text-sm text-gray-500">Assistant is thinking...</div>}
-          <div ref={messagesEndRef} />
+            ))}
         </div>
+
+        {isLoading && <div className="text-sm text-gray-500">Assistant is thinking...</div>}
+        <div ref={messagesEndRef} />
 
         <form onSubmit={handleSubmit} className="p-4 border-t">
           <div className="relative">
@@ -378,6 +434,17 @@ export default function Plan() {
               }}
               disabled={isLoading}
             />
+                  {/* Mode selector */}
+            <select
+                value={mode}
+                onChange={(e) => setMode(e.target.value as "parse" | "plan")}
+                className="absolute right-14 bottom-4 rounded border border-gray-300 bg-white p-1 text-sm"
+                disabled={isLoading}
+                aria-label="Select mode"
+            >
+                <option value="parse">Parse</option>
+                <option value="plan">Plan</option>
+            </select>
             <button
               type="submit"
               disabled={!inputValue.trim() || isLoading}
