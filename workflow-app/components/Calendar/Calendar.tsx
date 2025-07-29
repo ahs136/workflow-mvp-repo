@@ -48,6 +48,7 @@ export default function Calendar() {
     repeat:      '' as 'none'|'daily'|'weekdays'|'weekly'|'customDays',
     repeatUntil: '',
     byDay:       [] as string[],
+    createdByAI: false,
   });
 
   // --- Effects ---
@@ -63,25 +64,33 @@ export default function Calendar() {
 
   useEffect(() => {
     if (parsedEvent) {
+      const event = {
+        ...parsedEvent,
+        id: parsedEvent.id && parsedEvent.id.trim() !== '' ? parsedEvent.id : nanoid(),
+        ...parsedEvent.extendedProps,
+      };
+
+      console.log('🤖 [Calendar Parsed Event] Received parsedEvent, assigning id:', event.id, event);
       setIsFormOpen(true);
 
       setFormData({
-        id: nanoid(),
-        title: parsedEvent.title || '',
-        start: parsedEvent.start ? toDatetimeLocal(parsedEvent.start as string) : '',
-        end: parsedEvent.end ? toDatetimeLocal(parsedEvent.end as string) : '',
-        // @ts-ignore
-        description: parsedEvent.description || '',
-        location: parsedEvent.location || '',
-        tag: parsedEvent.tag || '',
-        color: parsedEvent.color || '#000000',
-        repeat: parsedEvent.repeat || 'none',
-        byDay: parsedEvent.byDay || [],
-        reminder: parsedEvent.reminder || 'none',
-        isStructural: parsedEvent.isStructural || false,
-        isNonNegotiable: parsedEvent.isNonNegotiable || false,
-        repeatUntil: parsedEvent.repeatUntil || '',
+        id: event.id,
+        title: event.title || '',
+        start: event.start ? toDatetimeLocal(event.start as string) : '',
+        end: event.end ? toDatetimeLocal(event.end as string) : '',
+        description: event.description || '',
+        location: event.location || '',
+        tag: event.tag || 'deadline',
+        color: event.color || defaultTagColors[event.tag || 'deadline'],
+        repeat: event.repeat || 'none',
+        byDay: Array.isArray(event.byDay) ? event.byDay : [],
+        reminder: event.reminder || 'none',
+        isStructural: !!event.isStructural,
+        isNonNegotiable: !!event.isNonNegotiable,
+        repeatUntil: event.repeatUntil || '',
+        createdByAI: !!event.createdByAI,
       });
+      
       setIsFormOpen(true);
       setParsedEvent(null);
       setParseInput('');
@@ -145,6 +154,7 @@ export default function Calendar() {
       repeat: 'none',
       repeatUntil: '',
       byDay: [],
+      createdByAI: false,
     });
     setSelectedEvent(null);
     setIsFormOpen(false);
@@ -152,43 +162,63 @@ export default function Calendar() {
   };
 
   const handleDateSelect = (info: any) => {
+    const id = nanoid();
     const s = info.start;
-    const e = info.end || new Date(s.getTime() + 60*60*1000);
-    setFormData((f) => ({
-      ...f,
+    const e = info.end || new Date(s.getTime() + 60 * 60 * 1000);
+  
+    setFormData({
+      id,
+      title: '',
+      description: '',
+      location: '',
       start: formatDateForInput(s),
-      end:   formatDateForInput(e),
-    }));
+      end: formatDateForInput(e),
+      reminder: 'none',
+      tag: 'deadline',
+      color: defaultTagColors['deadline'],
+      isStructural: info.extendedProps?.isStructural || false,
+      isNonNegotiable: info.extendedProps?.isNonNegotiable || false,
+      repeat: info.extendedProps?.repeat || 'none',
+      repeatUntil: info.extendedProps?.repeatUntil || '',
+      byDay: info.extendedProps?.byDay || [],
+      createdByAI: false,
+    });
+  
+    console.log('📆 [Date Select] Prepared form for new event:', id, info);
     setIsFormOpen(true);
   };
+  
+  
 
   const handleEventClick = (info: any) => {
-    const ev = events.find((e) => e.id === info.event.id);
-    if (!ev) return;
+    const fcEvent = info.event;
   
-    const tag = ev.extendedProps?.tag || 'deadline';
-    const color = ev.backgroundColor || defaultTagColors[tag];
+    const tag = fcEvent.extendedProps?.tag || 'deadline';
+    const color = fcEvent.backgroundColor || defaultTagColors[tag];
   
-    setSelectedEvent(ev);
+    setSelectedEvent(fcEvent); // optional, depends on if you're editing
+  
     setFormData({
-      id:             ev.id || nanoid(),
-      title:          ev.title as string,
-      description:    ev.extendedProps?.description || '',
-      start:          typeof ev.start === 'string' ? ev.start : formatDateForInput(new Date(ev.start)),
-      end:            ev.end ? (typeof ev.end === 'string' ? ev.end : formatDateForInput(new Date(ev.end))) : '',
-      location:       ev.extendedProps?.location || '',
-      reminder:       ev.extendedProps?.reminder || 'none',
+      id:             fcEvent.id || nanoid(),
+      title:          fcEvent.title || '',
+      description:    fcEvent.extendedProps?.description || '',
+      start:          formatDateForInput(new Date(fcEvent.start)),
+      end:            fcEvent.end ? formatDateForInput(new Date(fcEvent.end)) : '',
+      location:       fcEvent.extendedProps?.location || '',
+      reminder:       fcEvent.extendedProps?.reminder || 'none',
       tag:            tag,
       color:          color,
-      isStructural:   ev.extendedProps?.isStructural || false,
-      isNonNegotiable:ev.extendedProps?.isNonNegotiable || false,
-      repeat:         ev.repeat || 'none',
-      repeatUntil:    ev.repeatUntil || '',
-      byDay:          ev.byDay || [],
+      isStructural:   fcEvent.extendedProps?.isStructural || false,
+      isNonNegotiable:fcEvent.extendedProps?.isNonNegotiable || false,
+      repeat:         fcEvent.extendedProps?.repeat || 'none',
+      repeatUntil:    fcEvent.extendedProps?.repeatUntil || '',
+      byDay:          fcEvent.extendedProps?.byDay || [],
+      createdByAI:    fcEvent.extendedProps?.createdByAI || false,
     });
   
     setIsFormOpen(true);
   };
+  
   
 
   const handleEventDrop = (info: any) => {
@@ -218,7 +248,7 @@ export default function Calendar() {
 
     
     // Use selectedEvent.id if editing, otherwise generate a new one
-    const baseId = selectedEvent?.id ?? nanoid();
+    const baseId = selectedEvent?.groupId ? selectedEvent.groupId : selectedEvent?.id ?? nanoid();
   
     const base: EventInput = {
       id: baseId,
@@ -240,38 +270,81 @@ export default function Calendar() {
       repeatUntil: formData.repeatUntil,
       byDay: formData.byDay,
     } as any;
-  
-      // Remove old base + recurrences by filtering events out
-  const cleanedEvents = events.filter(
-    (e) => e.id !== baseId && e.groupId !== baseId
-  );
 
-    // Generate recurrences
-    const recurrences = generateRecurringEvents(base as any);
+  console.log('📝 [Form Submit] Created event with id:', baseId, base);
 
-  // Assign groupId to recurrences so they belong to base
-  const recurrencesWithGroupId = recurrences.map((e) => ({
-    ...e,
-    groupId: baseId,
-  }));
-  
-  const updatedEvents = [...cleanedEvents, base, ...recurrencesWithGroupId];
+  if (!selectedEvent || !selectedEvent.groupId?.trim()) {
+    // Editing or creating the base event => remove old base + recurrences, regenerate
+    const cleanedEvents = events.filter(
+      (e) => e.id !== baseId && e.groupId !== baseId
+    );
+    const recurrences = generateRecurringEvents(base);
 
-  setEvents(updatedEvents as Event[]);
-  saveEventsToLocalStorage(updatedEvents as EventInput[]);
-  [base, ...recurrencesWithGroupId].forEach(scheduleReminder);
+    const recurrencesWithGroupId = recurrences.map((e) => ({
+      ...e,
+      groupId: baseId,
+    }));
+
+    const updatedEvents = [...cleanedEvents, base, ...recurrencesWithGroupId];
+    setEvents(updatedEvents);
+    saveEventsToLocalStorage(updatedEvents);
+    [base, ...recurrencesWithGroupId].forEach(scheduleReminder);
+  } else {
+    // Editing a single recurrence => update only that event
+    const updatedEvents = events.map((e) =>
+      e.id === selectedEvent.id
+        ? {
+            ...e,
+            title: formData.title,
+            start: new Date(formData.start),
+            end: formData.end ? new Date(formData.end) : undefined,
+            extendedProps: {
+              ...e.extendedProps,
+              description: formData.description,
+              location: formData.location,
+              reminder: formData.reminder,
+              tag: formData.tag,
+              color: bgColor,
+              isStructural: formData.isStructural,
+              isNonNegotiable: formData.isNonNegotiable,
+            },
+            repeat: formData.repeat,
+            repeatUntil: formData.repeatUntil,
+            byDay: formData.byDay,
+          }
+        : e
+    );
+    setEvents(updatedEvents);
+    saveEventsToLocalStorage(updatedEvents);
+    const updatedEvent = updatedEvents.find((e) => e.id === selectedEvent.id);
+    if (updatedEvent) scheduleReminder(updatedEvent);
+  }
 
   resetForm();
 };
   
 
-  const handleDelete = () => {
-    if (!selectedEvent) return;
+const handleDelete = () => {
+  if (!selectedEvent) return;
+
+  // If deleting a base event, delete all recurrences too
+  if (selectedEvent.groupId?.trim() === undefined || selectedEvent.groupId?.trim() === null) {
+    // This is the base event (no groupId)
+    const filtered = events.filter(
+      (e) => e.id !== selectedEvent.id && e.groupId !== selectedEvent.id
+    );
+    setEvents(filtered as Event[]);
+    saveEventsToLocalStorage(filtered as EventInput[]);
+  } else {
+    // This is a recurrence event; delete only itself
     const filtered = events.filter((e) => e.id !== selectedEvent.id);
     setEvents(filtered as Event[]);
     saveEventsToLocalStorage(filtered as EventInput[]);
-    resetForm();
-  };
+  }
+
+  resetForm();
+};
+
 
   const handleDatesSet = (arg: DatesSetArg) => {
     setCurrentDate(arg.start);
@@ -279,6 +352,7 @@ export default function Calendar() {
   // Render event content on calendar
   function renderEventContent(eventInfo: any) {
     const { event } = eventInfo;
+    const isCreatedByAI = event.extendedProps?.createdByAI || false;
     const description = event.description || '';
     const title = event.title || '';
     const tag = event.tag || 'deadline';
@@ -324,7 +398,7 @@ export default function Calendar() {
             {event.extendedProps?.tag}
           </div>
         </div>
-        <div style={{ fontSize: '1rem', fontWeight: 600 }}>{title}</div>
+        <div style={{ fontSize: '1rem', fontWeight: 600 }}>{title} {isCreatedByAI && <span title="AI-created" className="text-xs text-gray-500">🤖</span>}</div>
         {description && (
           <div
             style={{
@@ -345,10 +419,10 @@ export default function Calendar() {
 
   // Filter events for display based on tag and structural toggle
   const filteredEvents = structuralViewOn
-    ? events.filter(ev => ev.extendedProps?.isStructural)
+    ? events.filter((ev: EventInput) => ev.extendedProps?.isStructural)
     : selectedTag === 'all'
     ? events
-    : events.filter(ev => ev.extendedProps?.tag === selectedTag);
+    : events.filter((ev: EventInput) => ev.extendedProps?.tag === selectedTag);
 
   // Parse natural language event input (calls your API)
   const handleParseEvent = async () => {
@@ -369,6 +443,7 @@ export default function Calendar() {
   
       if (!result || !result.title || !result.start) {
         console.error('Invalid event from AI');
+        alert('Invalid event from AI, please try again');
         return;
       }
   

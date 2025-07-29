@@ -4,6 +4,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { nanoid } from 'nanoid';
 import { toZonedTime, format } from 'date-fns-tz';
+import { useEventContext } from '@/app/context/EventContext';
+import { EventInput } from '@fullcalendar/core';
 
 interface Message {
   id: string;
@@ -17,10 +19,20 @@ const STORAGE_SESSIONS_KEY = 'planningChatSessions';
 export default function Plan() {
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [currentEvents, setCurrentEvents] = useState<any[]>([]);
+  const { events, setEvents } = useEventContext();
   const [feedbackTargetId, setFeedbackTargetId] = useState<string | null>(null);
   const [feedbackValue, setFeedbackValue] = useState('');
   const [mode, setMode] = useState<'parse' | 'plan'>('parse');
+
+  const defaultTagColors: Record<string, string> = {
+    deadline: '#dc2626',
+    meeting: '#8b5cf6',
+    class:   '#1d4ed8',
+    focus:   '#ede8d0',
+    workout: '#03c04a',
+    social:  '#ff8da1',
+    personal:'#6b7280',
+  };
 
   interface Session {
     title: string;
@@ -53,6 +65,78 @@ export default function Plan() {
   }, [currentSessionId]);
   
 
+  function tryApplyEventsFromResponse(text: string) {
+    try {
+      const parsed = JSON.parse(text);
+  
+      if (parsed?.action === 'add' && Array.isArray(parsed.events)) {
+        const eventsWithIds = parsed.events.map((event: EventInput) => {
+            const id = nanoid();
+            console.log('🤖 [Plan Parsed Event] Received parsedEvent, assigning id:', id, event);
+            const tag = event.tag || 'deadline'; // fallback tag
+            const color = event.color || defaultTagColors[tag];
+  
+            return {
+                ...event,
+                id,
+                createdByAI: true,
+                tag,
+                color,
+            };
+        });
+  
+        setEvents(prev => {
+          const updated = [...prev, ...eventsWithIds];
+          localStorage.setItem('calendarEvents', JSON.stringify(updated));
+          return updated;
+        });
+      }
+  
+      if (parsed?.action === 'delete') {
+        setEvents(prev => {
+          let filtered = prev;
+      
+          if (Array.isArray(parsed.eventIds) && parsed.eventIds.length > 0) {
+            // Delete by IDs (legacy or direct)
+            filtered = prev.filter(e => !parsed.eventIds.includes(e.id));
+          } else if (parsed.match && parsed.value) {
+            // Delete by matching criteria
+            function eventMatches(event: EventInput): boolean {
+              switch (parsed.match) {
+                case 'title':
+                  return event.title?.toLowerCase() === parsed.value.toLowerCase();
+                case 'tag':
+                  return event.tag === parsed.value;
+                case 'date':
+                  const eventDate = new Date(event.start as string).toISOString().slice(0,10);
+                  return eventDate === parsed.value;
+                default:
+                  return false;
+              }
+            }
+      
+            if (parsed.scope === 'single') {
+              const index = prev.findIndex(event => eventMatches(event));
+              if (index === -1) return prev;
+              filtered = [...prev.slice(0, index), ...prev.slice(index + 1)];
+            } else {
+              // default to removing all matching events
+              filtered = prev.filter(event => !eventMatches(event));
+            }
+          } else {
+            // No recognizable deletion criteria, no change
+            return prev;
+          }
+      
+          localStorage.setItem('calendarEvents', JSON.stringify(filtered));
+          return filtered;
+        });
+      }      
+    } catch (err) {
+      console.warn('Invalid event planning response:', err);
+    }
+  }
+  
   const handleFeedbackClick = (id: string) => {
     setFeedbackTargetId(id);
     setFeedbackValue('');
@@ -98,7 +182,7 @@ export default function Plan() {
         body: JSON.stringify({
           userInput: userCorrection,
           userFeedback: userCorrection,
-          currentEvents,
+          currentEvents: events,
           lastResponse: session.messages[session.messages.length - 1].content,
           mode
         }),
@@ -171,7 +255,7 @@ export default function Plan() {
         };
       });
   
-      setCurrentEvents(estEvents);
+      setEvents(estEvents);
     } catch (err) {
       console.warn('Could not parse calendarEvents', err);
     }
@@ -285,7 +369,7 @@ export default function Plan() {
       const res = await fetch('/api/assistant/plan-events', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userInput: inputValue, currentEvents, mode, lastResponse: session.messages[session.messages.length - 1].content }),
+        body: JSON.stringify({ userInput: inputValue, currentEvents: events, mode, lastResponse: session.messages[session.messages.length - 1].content }),
       });
   
       let assistantText = '';
@@ -297,6 +381,7 @@ export default function Plan() {
         const parsedInner = JSON.parse(json.result);
         // Pretty-print JSON for display
         assistantText = JSON.stringify(parsedInner, null, 2);
+        tryApplyEventsFromResponse(assistantText);
       } else {
         // For 'plan' mode, just get the plain text response
         const json = await res.json();
@@ -325,6 +410,8 @@ export default function Plan() {
     }
   };
   
+
+
   return (
     <div className="flex h-full">
       {/* Sidebar */}
@@ -442,7 +529,7 @@ export default function Plan() {
                 disabled={isLoading}
                 aria-label="Select mode"
             >
-                <option value="parse">Parse</option>
+                <option value="parse">Edit Schedule</option>
                 <option value="plan">Plan</option>
             </select>
             <button

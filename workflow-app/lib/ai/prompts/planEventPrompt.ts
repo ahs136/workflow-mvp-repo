@@ -1,6 +1,13 @@
-
-
 const now = new Date().toISOString();
+const defaultTagColors = {
+  deadline: '#dc2626',
+  meeting: '#8b5cf6',
+  class:   '#1d4ed8',
+  focus:   '#ede8d0',
+  workout: '#03c04a',
+  social:  '#ff8da1',
+  personal:'#6b7280',
+};
 
 export function generatePlanEventPrompt({
   userInput,
@@ -24,8 +31,10 @@ Your goal is to help the user plan their schedule by understanding natural langu
 
 - **Today is:** ${now} (EST, UTC-4)
 - **Current events:**
-${currentEvents.slice(0, 10).map(e => `  • ${e.title} | ${e.start}-${e.end}`).join("\n")}
-${currentEvents.length > 10 ? `\n  • …and ${currentEvents.length - 10} more events` : ""}
+${currentEvents.slice(0, 15).map(e => {
+  return `  • ${e.title} | ${e.start}-${e.end} | ID: ${e.id}`;
+}).join("\n")}
+${currentEvents.length > 15 ? `\n  • …and ${currentEvents.length - 15} more events` : ""}
 
 Events may be tagged: **deadline**, **meeting**, **class**, **focus**, **workout**, **social**, **personal**.  
 Some are **structural** (fixed blocks like classes/work), some are **non-negotiable** (personal obligations).
@@ -47,9 +56,7 @@ You are REQUIRED to fill out **every** field in every event object, even if the 
 {
   "action": "add" | "delete" | "clarify",
   "events"?: [ /* see Event Object Fields */ ],
-  "match"?: "title" | "tag" | "date",
-  "value"?: string,
-  "scope"?: "all" | "week" | "single" | "range",
+  "eventIds"?: string[],  // Required for delete
   "message"?: string
 }
 
@@ -58,70 +65,43 @@ You are REQUIRED to fill out **every** field in every event object, even if the 
 #### ✅ Event Object Fields (all REQUIRED, no omissions)
 
 {
+  "id": "", // leave blank, it will be generated later
   "title": string,
-  "description": string,            // default: ""
+  "description": string,
   "start": ISOString,
   "end": ISOString,
-  "location": string,              // default: ""
-  "reminder": "10m"|"1h"|"1d"|"2d"|"none", // default: "none"
+  "location": string,
+  "reminder": "10m"|"1h"|"1d"|"2d"|"none",
   "tag": "deadline"|"meeting"|"class"|"focus"|"workout"|"social"|"personal",
-  "color": string,                 // match tag color below
-  "repeat": "none"|"daily"|"weekdays"|"weekly"|"customDays", // default: "none"
-  "byDay": string[],               // default: []
-  "repeatUntil": ISODate | "",     // default: ""
-  "isStructural": boolean,
-  "isNonNegotiable": boolean
+  "color": string,
+  "repeat": "none"|"daily"|"weekdays"|"weekly"|"customDays",
+  "byDay": string[],
+  "repeatUntil": ISODate | "",
+  "isStructural": boolean, // structural events are fixed blocks like classes/work or meetings that should not be moved
+  "isNonNegotiable": boolean, // non-negotiable events are personal obligations that take precedence over other events, like important workouts or personal goals
+  "createdByAI": boolean
 }
 
+The color is a hex code, you can use the ${JSON.stringify(defaultTagColors)} object to get the color for a tag.
 ---
 
-| Tag       | Color     |
-|-----------|-----------|
-| deadline  | #dc2626   |
-| meeting   | #8b5cf6   |
-| class     | #1d4ed8   |
-| focus     | #ede8d0   |
-| workout   | #03c04a   |
-| social    | #ff8da1   |
-| personal  | #6b7280   |
+### ✅ Example: Deleting Events
 
----
+If the user wants to delete events, respond with a JSON object specifying how to match events to delete.
 
-### ✅ Example: Adding Events
-
-{
-  "action": "add",
-  "events": [
-    {
-      "title": "Gym Workout",
-      "description": "Strength training at the campus gym",
-      "start": "2025-08-05T17:00:00-04:00",
-      "end": "2025-08-05T18:00:00-04:00",
-      "location": "Campus Gym",
-      "reminder": "1h",
-      "tag": "workout",
-      "color": "#03c04a",
-      "repeat": "none",
-      "byDay": [],
-      "repeatUntil": "",
-      "isStructural": false,
-      "isNonNegotiable": false
-    }
-  ]
-}
-
----
-
-### ❌ Example: Deleting Events
-
-User: “Delete my workouts this week”  
-Assistant:
+delete events by finding the corresponding id in the currentEvents array.
+You must compare information the user gives you with properties of existing events such as title, tag, or date.
 
 {
   "action": "delete",
-  "match": "title",
-  "value": "Workout",
-  "scope": "week"
+  "eventIds": ["<id of matching event>"]
+}
+
+If no matching event is found, return:
+
+{
+  "action": "error",
+  "message": "No matching event found."
 }
 
 ---
@@ -131,7 +111,7 @@ Assistant:
 **Previous suggestion:** “${lastResponse ?? "None"}”  
 **User feedback:** “${userFeedback ?? "None"}”
 
-Respond by adjusting the suggestion or asking a clarification:
+Respond by adjusting the suggestion or asking for clarification:
 
 {
   "action": "clarify",
@@ -144,23 +124,9 @@ Respond by adjusting the suggestion or asking a clarification:
 
 - Return **only** valid JSON.
 - EST timezone (UTC-4).
-- If the input is too vague, reply with:
-
-{
-  "action": "clarify",
-  "message": "Please specify the day and time."
-}
-
-- You MUST include every field in the event, even if the value is empty or default.
-- If any field is missing, your response is invalid.
-
----
-
-### 🧪 Example Inputs
-
-- “Schedule lunch with Sarah Friday at noon”
-- “Remove all social events this weekend”
-- “That overlaps, can you reschedule?”
+- You MUST return real matching event IDs from the provided list.
+- If a deletion is vague, respond with a "clarify" action.
+- You MUST include every field in the event, even if the value is default or empty.
 
 ---
 

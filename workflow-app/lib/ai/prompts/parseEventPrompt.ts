@@ -1,14 +1,16 @@
 
+
 export function generateParseEventPrompt(userInput: string, now: string, type: string = "calendar-event"): string {
     return `
 Parse the following ${type} description into a JSON object with these exact fields:
 
 {
+  "id": string,                 // required — a unique non-empty id (e.g. "e0c9s2a1" or "9f87ghk2"), do not leave id blank or null.
   "title": string,              // required — A short, clear title (do not include any date/time here)
   "description": string,        // optional — Extra details about the event
   "start": string,              // required — ISO 8601 datetime format (e.g., "2025-07-25T14:00:00-04:00")
   "end": string,                // optional — ISO 8601 datetime (default to 1 hour after start if not provided)
-  "location": string,           // optional — e.g., "Zoom", "Library", "Gym"
+  "location": string,           // optional — e.g., "Zoom", "Library", "Gym". Look for the word "location" or "at" in the user input to determine if this is a location dependent event.
   "reminder": string,           // required — One of: "10 minutes before", "1 hour before", "1 day before", "2 days before", or "none"
   "tag": string,                // required — One of: "deadline", "meeting", "class", "focus", "workout", "social", "personal"
   "color": string,              // required — HEX color code based on tag:
@@ -28,7 +30,7 @@ Parse the following ${type} description into a JSON object with these exact fiel
 }
 
 Only return valid JSON. If any required information is missing, make a reasonable assumption or clearly state the missing fields in a separate "note" field at the end of the JSON.
-
+NEVER RETURN ANYTHING OTHER THAN VALID JSON. do not include any markdown or code blocks that would break the formatting.
   
   Timezone: Eastern (EST). Dates should use ISO 8601 with -04:00 offset.
   Use today's date/time as reference: ${now}
@@ -79,7 +81,8 @@ Only return valid JSON. If any required information is missing, make a reasonabl
   User: "CS class on MWF at 2pm until Dec 1"  
   →
   {
-    "title": "CS Class",
+    "id": "", // leave blank, it will be generated later
+  "title": "CS Class",
     "start": "2025-07-24T14:00:00-04:00",
     "end": "2025-07-24T15:00:00-04:00",
     "repeat": "weekly",
@@ -92,6 +95,7 @@ Only return valid JSON. If any required information is missing, make a reasonabl
   User: "Run every weekday at 7am"  
   →
   {
+    "id": "", // leave blank, it will be generated later
     "title": "Run",
     "start": "...",
     "repeat": "weekly",
@@ -102,6 +106,7 @@ Only return valid JSON. If any required information is missing, make a reasonabl
   User: "Team sync every week at 10am starting Thursday"  
   →
   {
+    "id": "", // leave blank, it will be generated later
     "title": "Team Sync",
     "start": "...",
     "repeat": "weekly",

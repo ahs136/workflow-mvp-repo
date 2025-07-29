@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
         { role: "system", content: "You are a helpful assistant." },
         { role: "user", content: prompt },
       ],
-      temperature: 0.7,
+      temperature: 0.5,
       max_tokens: 1000,
     });
 
