@@ -33,6 +33,7 @@ export default function Calendar() {
   const [structuralViewOn, setStructuralViewOn] = useState(false);
   const [parseInput, setParseInput] = useState('');
   const [parsedEvent, setParsedEvent] = useState<EventInput|null>(null);
+  const STORAGE_KEY = 'calendarEvents';
   const [formData, setFormData] = useState({
     id:          nanoid(),
     title:       '',
@@ -100,7 +101,7 @@ export default function Calendar() {
   // --- Helpers ---
   function saveEventsToLocalStorage(evts: EventInput[]) {
     localStorage.setItem(
-      'calendarEvents',
+      STORAGE_KEY,
       JSON.stringify(
         evts.map((e) => ({
           ...e,
@@ -549,6 +550,7 @@ const handleDelete = () => {
             right: 'dayGridMonth,timeGridWeek,timeGridDay',
           }}
           initialView="dayGridMonth"
+          height={650}
           selectable={true}
           selectMirror={true}
           select={handleDateSelect}
@@ -558,7 +560,6 @@ const handleDelete = () => {
           events={filteredEvents}
           ref={calendarRef}
           datesSet={handleDatesSet}
-          height={calendarHeight}
           views={{
             timeGridWeek: { minTime: '08:00:00', maxTime: '20:00:00', allDaySlot: false },
             timeGridDay: { minTime: '06:00:00', maxTime: '22:00:00', allDaySlot: false },

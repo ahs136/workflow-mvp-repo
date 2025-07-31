@@ -23,6 +23,7 @@ export default function Plan() {
   const [feedbackTargetId, setFeedbackTargetId] = useState<string | null>(null);
   const [feedbackValue, setFeedbackValue] = useState('');
   const [mode, setMode] = useState<'parse' | 'plan'>('parse');
+  const STORAGE_KEY = 'calendarEvents';
 
   const defaultTagColors: Record<string, string> = {
     deadline: '#dc2626',
@@ -39,6 +40,10 @@ export default function Plan() {
     messages: Message[];
   }
   
+  useEffect(() => {
+    console.log("Events from context:", events);
+  }, [events]);
+
   const [sessions, setSessions] = useState<Record<string, Session>>(() => {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("planner_sessions");
@@ -87,7 +92,7 @@ export default function Plan() {
   
         setEvents(prev => {
           const updated = [...prev, ...eventsWithIds];
-          localStorage.setItem('calendarEvents', JSON.stringify(updated));
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
           return updated;
         });
       }
@@ -128,7 +133,7 @@ export default function Plan() {
             return prev;
           }
       
-          localStorage.setItem('calendarEvents', JSON.stringify(filtered));
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
           return filtered;
         });
       }      
@@ -228,7 +233,7 @@ export default function Plan() {
 
   // get current events from localStorage
   useEffect(() => {
-    const raw = localStorage.getItem('calendarEvents');
+    const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return;
   
     try {

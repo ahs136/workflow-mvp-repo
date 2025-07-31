@@ -96,3 +96,7 @@ input:checked + .slider + .dot {
   padding: 0 4px;
   max-width: 40px;
 }
+
+.fc-timegrid-slot {
+  height: 60px !important; /* or 100px, experiment as needed */
+}

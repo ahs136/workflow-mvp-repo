@@ -12,7 +12,7 @@ const openai = new OpenAI({
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { mode, userInput, currentEvents, lastResponse, userFeedback } = body;
+  const { mode, userInput, currentEvents: events, lastResponse, userFeedback } = body;
 
   if (!userInput && !userFeedback) {
     return NextResponse.json({ error: "No userInput provided" }, { status: 400 });
@@ -23,14 +23,14 @@ export async function POST(req: NextRequest) {
   if (mode === "parse") {
     prompt = generatePlanEventPrompt({
       userInput,
-      currentEvents,
+      currentEvents: events,
       lastResponse,
       userFeedback,
     });
   } else if (mode === "plan") {
     prompt = generateSmartEventPlannerPrompt({
       userInput,
-      currentEvents,
+      currentEvents: events,
     });
   } else {
     return NextResponse.json({ error: "Invalid mode" }, { status: 400 });
@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
         { role: "system", content: "You are a helpful assistant." },
         { role: "user", content: prompt },
       ],
-      temperature: 0.5,
+      temperature: 0.3,
       max_tokens: 1000,
     });
 

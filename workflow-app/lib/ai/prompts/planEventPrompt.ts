@@ -1,3 +1,5 @@
+
+
 const now = new Date().toISOString();
 const defaultTagColors = {
   deadline: '#dc2626',
@@ -11,7 +13,7 @@ const defaultTagColors = {
 
 export function generatePlanEventPrompt({
   userInput,
-  currentEvents,
+  currentEvents: events,
   lastResponse,
   userFeedback,
 }: {
@@ -31,10 +33,10 @@ Your goal is to help the user plan their schedule by understanding natural langu
 
 - **Today is:** ${now} (EST, UTC-4)
 - **Current events:**
-${currentEvents.slice(0, 15).map(e => {
+${events.slice(0, 15).map(e => {
   return `  • ${e.title} | ${e.start}-${e.end} | ID: ${e.id}`;
 }).join("\n")}
-${currentEvents.length > 15 ? `\n  • …and ${currentEvents.length - 15} more events` : ""}
+${events.length > 15 ? `\n  • …and ${events.length - 15} more events` : ""}
 
 Events may be tagged: **deadline**, **meeting**, **class**, **focus**, **workout**, **social**, **personal**.  
 Some are **structural** (fixed blocks like classes/work), some are **non-negotiable** (personal obligations).
@@ -65,21 +67,29 @@ You are REQUIRED to fill out **every** field in every event object, even if the 
 #### ✅ Event Object Fields (all REQUIRED, no omissions)
 
 {
-  "id": "", // leave blank, it will be generated later
-  "title": string,
-  "description": string,
-  "start": ISOString,
-  "end": ISOString,
-  "location": string,
-  "reminder": "10m"|"1h"|"1d"|"2d"|"none",
-  "tag": "deadline"|"meeting"|"class"|"focus"|"workout"|"social"|"personal",
-  "color": string,
-  "repeat": "none"|"daily"|"weekdays"|"weekly"|"customDays",
-  "byDay": string[],
-  "repeatUntil": ISODate | "",
-  "isStructural": boolean, // structural events are fixed blocks like classes/work or meetings that should not be moved
-  "isNonNegotiable": boolean, // non-negotiable events are personal obligations that take precedence over other events, like important workouts or personal goals
-  "createdByAI": boolean
+  "id": string,                 // required — a unique non-empty id with multiple characters (e.g. "e0c9s2a1" or "9f87ghk2"), do not leave id blank or null.
+  "title": string,              // required — A short, clear title (do not include any date/time here)
+  "description": string,        // optional — Extra details about the event
+  "start": string,              // required — ISO 8601 datetime format (e.g., "2025-07-25T14:00:00-04:00")
+  "end": string,                // optional — ISO 8601 datetime (default to 1 hour after start if not provided)
+  "location": string,           // optional — e.g., "Zoom", "Library", "Gym". Look for the word "location" or "at" in the user input to determine if this is a location dependent event.
+  "reminder": string,           // required — One of: "10 minutes before", "1 hour before", "1 day before", "2 days before", or "none"
+  "tag": string,                // required — One of: "deadline", "meeting", "class", "focus", "workout", "social", "personal"
+  "color": string,              // required — HEX color code based on tag:
+                                //   - "deadline": "#FF6B6B"
+                                //   - "meeting": "#1E90FF"
+                                //   - "class": "#6A5ACD"
+                                //   - "focus": "#20B2AA"
+                                //   - "workout": "#FF8C00"
+                                //   - "social": "#DA70D6"
+                                //   - "personal": "#32CD32"
+  "repeat": string,             // required — One of: 'none'|'daily'|'weekdays'|'weekly'
+                                // if the user hints at a recurring event you must set "repeat" to 'weekdays' to access the 'byDay' field. otherwise set to 'none' and do not include 'byDay', choosing the date by selecting a start string.
+  "repeatUntil": string,        // optional — ISO 8601 end date for recurrence (e.g., "2025-08-30")
+  "byDay": string[],            // optional — Array of weekday codes for weekly repeat (e.g., ["MO", "WE", "FR"])
+  "isStructural": boolean,      // optional — true if this is a fixed recurring event like a class or meeting
+  "isNonNegotiable": boolean    // optional — true if this is a personal obligation you will not reschedule (like a personal workout or family dinner)
+  "createdByAI": true
 }
 
 The color is a hex code, you can use the ${JSON.stringify(defaultTagColors)} object to get the color for a tag.
@@ -91,10 +101,15 @@ If the user wants to delete events, respond with a JSON object specifying how to
 
 delete events by finding the corresponding id in the currentEvents array.
 You must compare information the user gives you with properties of existing events such as title, tag, or date.
+If the user input contains an event ID matching an existing event's ID, you should respond with the delete action including that event ID directly.
 
 {
-  "action": "delete",
-  "eventIds": ["<id of matching event>"]
+  "action": "delete", // required
+  "title": string, (matching a chunk of the user input) // required
+  "tag": string, (matching a chunk of the user input)
+  "start": string, (matching a chunk of the user input)
+  "location": string, (matching a chunk of the user input)
+  "eventIds": ["<id of matching event>"] // required
 }
 
 If no matching event is found, return:
