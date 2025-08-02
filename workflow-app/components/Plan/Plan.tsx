@@ -454,7 +454,9 @@ export default function Plan() {
       {/* Chat area */}
       <main className="flex-1 flex flex-col">
         <div className="p-4 border-b">
-          <h1 className="text-2xl font-bold">AI Planning Assistant</h1>
+          <h1 className="text-2xl font-bold">Chatbot Assistant</h1>
+          <h2 className="mt-2 font-normal">Welcome to the AI Planning Assistant! I'm here to help you plan your day, week, or month. I can help you create study schedules, set goals, organize tasks, and develop productivity strategies. What would you like to plan today?</h2>
+          <h2 className="mt-2 font-normal">(Use edit schedule for events and plan for scheduling advice)</h2>
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-4">

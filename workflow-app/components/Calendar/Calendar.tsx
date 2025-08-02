@@ -50,6 +50,12 @@ export default function Calendar() {
     repeatUntil: '',
     byDay:       [] as string[],
     createdByAI: false,
+    isCompleted: false,
+    actualDurationMinutes: 0,
+    productivityRating: 0,
+    userNotes: '',
+    feedbackTimestamp: '',
+
   });
 
   // --- Effects ---
@@ -90,6 +96,11 @@ export default function Calendar() {
         isNonNegotiable: !!event.isNonNegotiable,
         repeatUntil: event.repeatUntil || '',
         createdByAI: !!event.createdByAI,
+        isCompleted: !!event.isCompleted,
+        actualDurationMinutes: event.actualDurationMinutes || 0,
+        productivityRating: event.productivityRating || 0,
+        userNotes: event.userNotes || '',
+        feedbackTimestamp: event.feedbackTimestamp || '',
       });
       
       setIsFormOpen(true);
@@ -156,6 +167,11 @@ export default function Calendar() {
       repeatUntil: '',
       byDay: [],
       createdByAI: false,
+      isCompleted: false,
+      actualDurationMinutes: 0,
+      productivityRating: 0,
+      userNotes: '',
+      feedbackTimestamp: '',
     });
     setSelectedEvent(null);
     setIsFormOpen(false);
@@ -183,6 +199,11 @@ export default function Calendar() {
       repeatUntil: info.extendedProps?.repeatUntil || '',
       byDay: info.extendedProps?.byDay || [],
       createdByAI: false,
+      isCompleted: false,
+      actualDurationMinutes: 0,
+      productivityRating: 0,
+      userNotes: '',
+      feedbackTimestamp: '',
     });
   
     console.log('📆 [Date Select] Prepared form for new event:', id, info);
@@ -215,6 +236,11 @@ export default function Calendar() {
       repeatUntil:    fcEvent.extendedProps?.repeatUntil || '',
       byDay:          fcEvent.extendedProps?.byDay || [],
       createdByAI:    fcEvent.extendedProps?.createdByAI || false,
+      isCompleted:    fcEvent.extendedProps?.isCompleted || false,
+      actualDurationMinutes: fcEvent.extendedProps?.actualDurationMinutes || 0,
+      productivityRating: fcEvent.extendedProps?.productivityRating || 0,
+      userNotes: fcEvent.extendedProps?.userNotes || '',
+      feedbackTimestamp: fcEvent.extendedProps?.feedbackTimestamp || '',
     });
   
     setIsFormOpen(true);
@@ -266,6 +292,11 @@ export default function Calendar() {
         color: bgColor,
         isStructural: formData.isStructural,
         isNonNegotiable: formData.isNonNegotiable,
+        isCompleted: formData.isCompleted,
+        actualDurationMinutes: formData.actualDurationMinutes,
+        productivityRating: formData.productivityRating,
+        userNotes: formData.userNotes,
+        feedbackTimestamp: formData.feedbackTimestamp,
       },
       repeat: formData.repeat,
       repeatUntil: formData.repeatUntil,
@@ -308,6 +339,11 @@ export default function Calendar() {
               color: bgColor,
               isStructural: formData.isStructural,
               isNonNegotiable: formData.isNonNegotiable,
+              isCompleted: formData.isCompleted,
+              actualDurationMinutes: formData.actualDurationMinutes,
+              productivityRating: formData.productivityRating,
+              userNotes: formData.userNotes,
+              feedbackTimestamp: formData.feedbackTimestamp,
             },
             repeat: formData.repeat,
             repeatUntil: formData.repeatUntil,
