@@ -11,8 +11,7 @@ export default function Productivity() {
   const eligibleEvents = events.filter(
     (e) =>
       e.extendedProps?.isCompleted &&
-      !e.extendedProps?.isReviewed &&
-      new Date(e.end) < now
+      !e.extendedProps?.isReviewed
   );
 
   const [currentIndex, setCurrentIndex] = useState(0);

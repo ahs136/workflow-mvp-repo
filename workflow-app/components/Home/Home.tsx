@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Event, useEventContext } from "@/app/context/EventContext";
 import { startOfWeek, endOfWeek, isWithinInterval, parseISO } from 'date-fns';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
+import { calculateMetrics } from "@/lib/utils/metrics";
 
 
 export default function Home() {
@@ -114,16 +115,19 @@ const highlightSummary = () => {
 };
 
 // #8 logic
-// Get past week's events
-const pastWeekEvents = events.filter((e: any) => {
+const pastWeekEvents = events.filter(e => {
   const eventDate = new Date(e.start);
   const oneWeekAgo = new Date();
   oneWeekAgo.setDate(today.getDate() - 7);
-  return eventDate >= oneWeekAgo && eventDate <= today && e.extendedProps?.isCompleted;
+  return (
+    eventDate >= oneWeekAgo &&
+    eventDate <= today &&
+    e.extendedProps?.isCompleted === true &&
+    e.extendedProps?.isReviewed === true
+  );
 });
 
-// Group by weekday
-const dayMap: Record<string, { total: number, count: number }> = {
+const dayMap = {
   Mon: { total: 0, count: 0 },
   Tue: { total: 0, count: 0 },
   Wed: { total: 0, count: 0 },
@@ -135,12 +139,14 @@ const dayMap: Record<string, { total: number, count: number }> = {
 
 pastWeekEvents.forEach(e => {
   const day = new Date(e.start).toLocaleDateString('en-US', { weekday: 'short' });
-  const prod = e.extendedProps?.reviewData?.productivity ?? 0;
-  dayMap[day].total += prod;
-  dayMap[day].count += 1;
+  const prod = e.extendedProps?.reviewData?.productivityRating ?? 0;
+  if(dayMap[day as keyof typeof dayMap]) {
+    dayMap[day as keyof typeof dayMap].total += prod;
+    dayMap[day as keyof typeof dayMap].count += 1;
+  }
 });
 
-// Convert to chart data
+// Prepare data for chart
 const productivityData = Object.entries(dayMap).map(([day, { total, count }]) => ({
   day,
   productivity: count > 0 ? total / count : 0
@@ -148,11 +154,60 @@ const productivityData = Object.entries(dayMap).map(([day, { total, count }]) =>
 
 // AI insight
 const highestDay = productivityData.reduce((max, d) => d.productivity > max.productivity ? d : max, productivityData[0]);
-const aiInsight = highestDay.productivity > 0
+const oldAiInsight = highestDay.productivity > 0
   ? `Your highest productivity score this week was on ${highestDay.day}. Consider protecting that time for important work.`
   : "Complete more events with reviews to unlock insights!";
 
 
+// #9 logic
+const metrics = calculateMetrics(events);
+function useAiSummary(metrics) {
+  const [summary, setSummary] = useState("Loading AI summary...");
+
+  useEffect(() => {
+    const cacheKey = "aiSummaryCache";
+    const cacheExpiryMs = 1000 * 60 * 60; // 1 hour
+
+    async function fetchSummary() {
+      try {
+        const res = await fetch("/api/assistant/ai-summary", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(metrics),
+        });
+        if (!res.ok) throw new Error("API error");
+        const data = await res.json();
+        const now = Date.now();
+        // Save to localStorage with timestamp
+        localStorage.setItem(
+          cacheKey,
+          JSON.stringify({ summary: data.summary, timestamp: now })
+        );
+        setSummary(data.summary || "No summary available.");
+      } catch (e) {
+        setSummary("Failed to load AI summary.");
+      }
+    }
+
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) {
+      const { summary: cachedSummary, timestamp } = JSON.parse(cached);
+      const now = Date.now();
+
+      if (now - timestamp < cacheExpiryMs) {
+        // Use cached summary
+        setSummary(cachedSummary);
+        return;
+      }
+    }
+
+    // If no valid cache, fetch new summary
+    fetchSummary();
+  }, [metrics]);
+
+  return summary;
+}
+const aiSummary = useAiSummary(metrics);
 
   return (
     <div className="p-6">
@@ -162,7 +217,7 @@ const aiInsight = highestDay.productivity > 0
         {/* 1. Upcoming / Live Tracker */}
         <div className="bg-white p-4 rounded-lg shadow">
           <h2 className="text-xl font-semibold mb-2">Next Event</h2>
-          {upcomingEvent ? (
+          {upcomingEvent && !upcomingEvent.extendedProps?.isCompleted ? (
             <div>
               <div className="text-lg font-bold">{upcomingEvent.title}</div>
               <div className="text-sm text-gray-600">
@@ -225,9 +280,9 @@ const aiInsight = highestDay.productivity > 0
         <div className="bg-white p-4 rounded-lg shadow">
         <h2 className="text-xl font-semibold mb-2">Upcoming Reminders</h2>
         <ul className="text-sm space-y-2">
-            {events.filter((e: any) => isSameDay(new Date(e.start), today) && (e.extendedProps?.reminder || e.reminder) !== 'none').length > 0 ? (
+            {events.filter((e: any) => isSameDay(new Date(e.start), today) && !e.extendedProps?.isCompleted && (e.extendedProps?.reminder || e.reminder) !== 'none').length > 0 ? (
             events
-                .filter((e: any) => isSameDay(new Date(e.start), today) && (e.extendedProps?.reminder || e.reminder) !== 'none')
+                .filter((e: any) => isSameDay(new Date(e.start), today) && !e.extendedProps?.isCompleted && (e.extendedProps?.reminder || e.reminder) !== 'none')
                 .map((e: any) => (
                 <li key={e.id}>
                     ⏰ {e.title} - {(e.extendedProps?.reminder || e.reminder)} before
@@ -281,7 +336,7 @@ const aiInsight = highestDay.productivity > 0
                 {/* 8. AI Insights */}
         <div className="bg-white p-4 rounded-lg shadow">
           <h2 className="text-xl font-semibold mb-2">AI Insights</h2>
-          <p className="text-sm text-gray-700 mb-4">{aiInsight}</p>
+          <p className="text-sm text-gray-700 mb-4">{oldAiInsight}</p>
 
           <ResponsiveContainer width="100%" height={150}>
             <BarChart data={productivityData}>
@@ -292,6 +347,12 @@ const aiInsight = highestDay.productivity > 0
               <Bar dataKey="productivity" fill="#4f46e5" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
+        </div>
+
+        {/* 9. Smart Summary */}
+        <div className="bg-white p-4 rounded-lg shadow">
+          <h2 className="text-xl font-semibold mb-2">Smart Summary</h2>
+          <p className="text-sm text-gray-700 mb-4">{aiSummary}</p>
         </div>
       </div>
     </div>

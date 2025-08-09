@@ -770,7 +770,14 @@ const handleDelete = () => {
             ))}
           </div>
         )}
-
+          <label className="flex items-center gap-2 cursor-pointer select-none font-medium">
+          <input
+            type="checkbox"
+            checked={formData.isCompleted}
+            onChange={e => setFormData({ ...formData, isCompleted: !formData.isCompleted })}
+          />
+          Completed
+        </label>
 
         {/* Always allow a Repeat‑Until date if any repeat */}
         {formData.repeat !== 'none' && (
