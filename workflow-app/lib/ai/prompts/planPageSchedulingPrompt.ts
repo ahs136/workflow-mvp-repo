@@ -1,27 +1,38 @@
 
 
-const now = new Date().toISOString();
-const defaultTagColors = {
-  deadline: '#dc2626',
-  meeting: '#8b5cf6',
-  class:   '#1d4ed8',
-  focus:   '#ede8d0',
-  workout: '#03c04a',
-  social:  '#ff8da1',
-  personal:'#6b7280',
-};
-
-export function generatePlanEventPrompt({
+export function generatePlanPageSchedulingPrompt({
   userInput,
   currentEvents: events,
   lastResponse,
   userFeedback,
+  feedbackSummary = "",
 }: {
   userInput: string;
   currentEvents: any[];
   lastResponse?: string;
   userFeedback?: string;
+  feedbackSummary?: string;
 }) {
+  const now = new Date().toISOString();
+  const defaultTagColors = {
+    deadline: '#dc2626',
+    meeting: '#8b5cf6',
+    class:   '#1d4ed8',
+    focus:   '#ede8d0',
+    workout: '#03c04a',
+    social:  '#ff8da1',
+    personal:'#6b7280',
+  };
+
+  // Build feedback summary for events that have reviewData
+  const feedbackSummaries = events
+    .filter(e => e.extendedProps?.reviewData)
+    .map(e => {
+      const fb = e.extendedProps.reviewData;
+      return `- "${e.title}": took about ${fb.actualDurationMinutes} min, productivity ${fb.productivityRating}/5, notes: ${fb.userNotes || "none"}`;
+    })
+    .join("\n") || "No user feedback available yet.";
+
   return `
 You are a helpful and intelligent AI calendar planning assistant.
 
@@ -40,6 +51,23 @@ ${events.length > 15 ? `\n  • …and ${events.length - 15} more events` : ""}
 
 Events may be tagged: **deadline**, **meeting**, **class**, **focus**, **workout**, **social**, **personal**.  
 Some are **structural** (fixed blocks like classes/work), some are **non-negotiable** (personal obligations).
+
+
+### Feedback-derived statistics (computed from user's completed event reviews)
+${feedbackSummary || "No feedback data available yet."}
+
+### How to use feedback stats (IMPORTANT — follow these heuristics)
+1. **Compare allotted vs actual**: For each tag/title where avgActual > avgAllotted:
+   - If avgActual is > avgAllotted by **≥ 25%** and appears in **≥ 2** past events, **increase** future suggested durations for that tag/title by the difference (rounded) or by +25% (choose whichever is more conservative).
+   - If avgActual is < avgAllotted by **≥ 25%**, consider **reducing** suggested duration or suggesting the user split the block.
+2. **Use productivity rating**:
+   - If avg productivity ≤ 2.5 for a tag/title, suggest changes to improve focus (shorter blocks, break placement, reduce adjacent social/workloads).
+   - If avg rating ≥ 4.0, consider keeping or slightly increasing similar blocks — the user is productive for these.
+3. **Watch for consistent notes**:
+   - If notes mention the same friction (e.g., "distracted by phone"), surface that as an actionable suggestion (e.g., “add 10-min buffer after social time”).
+4. **Non-negotiables & structural events must be respected** — do not reschedule these unless the user explicitly asks.
+
+Overall, make sure to compare the planned start/end to the actual duration, identify overruns or underruns, and incorporate userNotes into your recommendations
 
 ---
 
@@ -92,7 +120,12 @@ You are REQUIRED to fill out **every** field in every event object, even if the 
   "createdByAI": true
 }
 
-The color is a hex code, you can use the ${JSON.stringify(defaultTagColors)} object to get the color for a tag.
+- When suggesting new or edited events, **apply the heuristics above** to set durations (start/end).  
+- If adjusting durations, include a short reason in "message" like: "Increased focus block from 60 → 90 min because avg actual was 85 min across 3 samples."
+- Include valid ISO timestamps (EST, UTC-4) for start/end.
+- ALWAYS fill every field in each event object (use null for optional empty fields).
+
+
 ---
 
 ### ✅ Example: Deleting Events
@@ -148,5 +181,7 @@ Respond by adjusting the suggestion or asking for clarification:
 ### 🧾 User Request
 
 "${userInput}"
+Previous suggestion: "${lastResponse ?? "None"}"
+User feedback (manual): "${userFeedback ?? "None"}"
 `;
 }

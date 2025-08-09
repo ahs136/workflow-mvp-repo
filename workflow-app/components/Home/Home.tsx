@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { Event, useEventContext } from "@/app/context/EventContext";
 import { startOfWeek, endOfWeek, isWithinInterval, parseISO } from 'date-fns';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
+
 
 export default function Home() {
   const { events, setEvents } = useEventContext();
@@ -85,7 +87,7 @@ export default function Home() {
 
 const tagCounts: Record<string, number> = {};
 thisWeekEvents.forEach(e => {
-  const tag = e.extendedProps?.tag || 'untagged';
+  const tag = e.tag || e.extendedProps?.tag || 'untagged';
   tagCounts[tag] = (tagCounts[tag] || 0) + 1;
 });
 
@@ -110,6 +112,45 @@ const highlightSummary = () => {
 
   return highlights.join('. ') + '.';
 };
+
+// #8 logic
+// Get past week's events
+const pastWeekEvents = events.filter((e: any) => {
+  const eventDate = new Date(e.start);
+  const oneWeekAgo = new Date();
+  oneWeekAgo.setDate(today.getDate() - 7);
+  return eventDate >= oneWeekAgo && eventDate <= today && e.extendedProps?.isCompleted;
+});
+
+// Group by weekday
+const dayMap: Record<string, { total: number, count: number }> = {
+  Mon: { total: 0, count: 0 },
+  Tue: { total: 0, count: 0 },
+  Wed: { total: 0, count: 0 },
+  Thu: { total: 0, count: 0 },
+  Fri: { total: 0, count: 0 },
+  Sat: { total: 0, count: 0 },
+  Sun: { total: 0, count: 0 },
+};
+
+pastWeekEvents.forEach(e => {
+  const day = new Date(e.start).toLocaleDateString('en-US', { weekday: 'short' });
+  const prod = e.extendedProps?.reviewData?.productivity ?? 0;
+  dayMap[day].total += prod;
+  dayMap[day].count += 1;
+});
+
+// Convert to chart data
+const productivityData = Object.entries(dayMap).map(([day, { total, count }]) => ({
+  day,
+  productivity: count > 0 ? total / count : 0
+}));
+
+// AI insight
+const highestDay = productivityData.reduce((max, d) => d.productivity > max.productivity ? d : max, productivityData[0]);
+const aiInsight = highestDay.productivity > 0
+  ? `Your highest productivity score this week was on ${highestDay.day}. Consider protecting that time for important work.`
+  : "Complete more events with reviews to unlock insights!";
 
 
 
@@ -136,9 +177,10 @@ const highlightSummary = () => {
         {/* 2. Today's Events */}
         <div className="bg-white p-4 rounded-lg shadow">
           <h2 className="text-xl font-semibold mb-2">Today's Events</h2>
-          {eventsForDate(today).length > 0 ? (
+          {eventsForDate(today).filter((e: any) => !e.extendedProps?.isCompleted).length > 0 ? (
             <ul className="space-y-2">
               {eventsForDate(new Date(today))
+                .filter((e: any) => !e.extendedProps?.isCompleted)
                 .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime())
                 .map(e => (
                   <li key={e.id} className="text-sm bg-gray-100 p-2 rounded">
@@ -183,12 +225,12 @@ const highlightSummary = () => {
         <div className="bg-white p-4 rounded-lg shadow">
         <h2 className="text-xl font-semibold mb-2">Upcoming Reminders</h2>
         <ul className="text-sm space-y-2">
-            {events.filter(e => isSameDay(new Date(e.start), today) && e.extendedProps?.reminder !== 'none').length > 0 ? (
+            {events.filter((e: any) => isSameDay(new Date(e.start), today) && (e.extendedProps?.reminder || e.reminder) !== 'none').length > 0 ? (
             events
-                .filter(e => isSameDay(new Date(e.start), today) && e.extendedProps?.reminder !== 'none')
-                .map(e => (
+                .filter((e: any) => isSameDay(new Date(e.start), today) && (e.extendedProps?.reminder || e.reminder) !== 'none')
+                .map((e: any) => (
                 <li key={e.id}>
-                    ⏰ {e.title} - {e.extendedProps?.reminder} before
+                    ⏰ {e.title} - {(e.extendedProps?.reminder || e.reminder)} before
                 </li>
                 ))
             ) : (
@@ -236,10 +278,20 @@ const highlightSummary = () => {
 
 
 
-        {/* 8. AI Assistant Placeholder */}
-        <div className="bg-white p-4 rounded-lg shadow text-gray-500">
-          <h2 className="text-xl font-semibold mb-2">AI Assistant</h2>
-          <p>🧠 Coming soon: Get suggestions, reschedule conflicts, and optimize your week.</p>
+                {/* 8. AI Insights */}
+        <div className="bg-white p-4 rounded-lg shadow">
+          <h2 className="text-xl font-semibold mb-2">AI Insights</h2>
+          <p className="text-sm text-gray-700 mb-4">{aiInsight}</p>
+
+          <ResponsiveContainer width="100%" height={150}>
+            <BarChart data={productivityData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="day" />
+              <YAxis />
+              <Tooltip />
+              <Bar dataKey="productivity" fill="#4f46e5" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
         </div>
       </div>
     </div>

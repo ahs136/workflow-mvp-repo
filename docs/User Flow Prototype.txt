@@ -29,24 +29,24 @@
       1. User-specific productivity time
       2. This time will be split up and optimized through different pages
 5. Productivity Mode
-   1. User lists specific studying need (can be personal projects or miscellaneous for professionals)
+   1. User can fill out feedback forms on past events to help AI offer personalized feedback and insights
+   2. User lists specific studying need (can be personal projects or miscellaneous for professionals)
       1. This is to not add additional stress to calendar for the daily study obligations of college students
       2. What goes in calendar vs productivity mode must be correctly determined by AI
          1. If wrong, talk to personalization page
-   2. This time period will be strategically planned by AI
+   3. This time period will be strategically planned by AI
       1. When does the user work best at certain subjects?
       2. How much time for each task?
       3. Best time for breaks?
       4. How to transition between tasks?
-   3. This is when you will have live progress tracking, more game like, live activity tracking, timers, dnd, etc
-   4. Study Mode
+   4. This is when you will have live progress tracking, more game like, live activity tracking, timers, dnd, etc
+   5. Study Mode
       1. Study with GPT
          1. Ask follow up questions
          2. Sample questions
          3. Summaries 
       2. Upload notes to have them be analyzed/summarized
       3. Proper time management to keep users on pace
-   5. Look into SecondBrain 
 6. Personalization Page
    1. For conversation
       1. Give feedback on AI’s task scheduling, message creation, suggestions, reminders, personal motivation etc

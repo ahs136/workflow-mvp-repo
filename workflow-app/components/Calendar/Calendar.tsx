@@ -24,7 +24,7 @@ export default function Calendar() {
   };
 
   // --- State ---
-  const { events, setEvents } = useEventContext();
+  const { events, setEvents, clearAllEvents } = useEventContext();
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<EventInput|null>(null);
@@ -51,11 +51,13 @@ export default function Calendar() {
     byDay:       [] as string[],
     createdByAI: false,
     isCompleted: false,
-    actualDurationMinutes: 0,
-    productivityRating: 0,
-    userNotes: '',
-    feedbackTimestamp: '',
-
+    isReviewed: false,
+    reviewData: {
+      actualDurationMinutes: 0,
+      productivityRating: 0,
+      userNotes: '',
+      feedbackTimestamp: '',
+    }
   });
 
   // --- Effects ---
@@ -85,22 +87,20 @@ export default function Calendar() {
         title: event.title || '',
         start: event.start ? toDatetimeLocal(event.start as string) : '',
         end: event.end ? toDatetimeLocal(event.end as string) : '',
-        description: event.description || '',
-        location: event.location || '',
-        tag: event.tag || 'deadline',
-        color: event.color || defaultTagColors[event.tag || 'deadline'],
-        repeat: event.repeat || 'none',
-        byDay: Array.isArray(event.byDay) ? event.byDay : [],
-        reminder: event.reminder || 'none',
-        isStructural: !!event.isStructural,
-        isNonNegotiable: !!event.isNonNegotiable,
-        repeatUntil: event.repeatUntil || '',
-        createdByAI: !!event.createdByAI,
-        isCompleted: !!event.isCompleted,
-        actualDurationMinutes: event.actualDurationMinutes || 0,
-        productivityRating: event.productivityRating || 0,
-        userNotes: event.userNotes || '',
-        feedbackTimestamp: event.feedbackTimestamp || '',
+        description: event.extendedProps?.description || '',
+        location: event.extendedProps?.location || '',
+        tag: event.extendedProps?.tag || 'deadline',
+        color: event.extendedProps?.color || defaultTagColors[event.extendedProps?.tag || 'deadline'],
+        repeat: event.extendedProps?.repeat || 'none',
+        byDay: Array.isArray(event.extendedProps?.byDay) ? event.extendedProps?.byDay : [],
+        reminder: event.extendedProps?.reminder || 'none',
+        isStructural: !!event.extendedProps?.isStructural,
+        isNonNegotiable: !!event.extendedProps?.isNonNegotiable,
+        repeatUntil: event.extendedProps?.repeatUntil || '',
+        createdByAI: !!event.extendedProps?.createdByAI,
+        isCompleted: !!event.extendedProps?.isCompleted,
+        isReviewed: event.extendedProps?.isReviewed || false,
+        reviewData: event.extendedProps?.reviewData
       });
       
       setIsFormOpen(true);
@@ -108,6 +108,7 @@ export default function Calendar() {
       setParseInput('');
     }
   }, [parsedEvent]);
+
 
   // --- Helpers ---
   function saveEventsToLocalStorage(evts: EventInput[]) {
@@ -122,7 +123,8 @@ export default function Calendar() {
       )
     );
   }
-
+  
+  
   function scheduleReminder(evt: EventInput) {
     if (!('Notification' in window) || Notification.permission !== 'granted') return;
     const map: Record<string, number> = {
@@ -168,10 +170,13 @@ export default function Calendar() {
       byDay: [],
       createdByAI: false,
       isCompleted: false,
-      actualDurationMinutes: 0,
-      productivityRating: 0,
-      userNotes: '',
-      feedbackTimestamp: '',
+      isReviewed: false,
+      reviewData: {
+        actualDurationMinutes: 0,
+        productivityRating: 0,
+        userNotes: '',
+        feedbackTimestamp: '',
+      },
     });
     setSelectedEvent(null);
     setIsFormOpen(false);
@@ -200,10 +205,13 @@ export default function Calendar() {
       byDay: info.extendedProps?.byDay || [],
       createdByAI: false,
       isCompleted: false,
-      actualDurationMinutes: 0,
-      productivityRating: 0,
-      userNotes: '',
-      feedbackTimestamp: '',
+      isReviewed: false,
+      reviewData: {
+        actualDurationMinutes: 0,
+        productivityRating: 0,
+        userNotes: '',
+        feedbackTimestamp: '',
+      },
     });
   
     console.log('📆 [Date Select] Prepared form for new event:', id, info);
@@ -237,10 +245,13 @@ export default function Calendar() {
       byDay:          fcEvent.extendedProps?.byDay || [],
       createdByAI:    fcEvent.extendedProps?.createdByAI || false,
       isCompleted:    fcEvent.extendedProps?.isCompleted || false,
-      actualDurationMinutes: fcEvent.extendedProps?.actualDurationMinutes || 0,
-      productivityRating: fcEvent.extendedProps?.productivityRating || 0,
-      userNotes: fcEvent.extendedProps?.userNotes || '',
-      feedbackTimestamp: fcEvent.extendedProps?.feedbackTimestamp || '',
+      isReviewed: fcEvent.extendedProps?.isReviewed || false,
+      reviewData: fcEvent.extendedProps?.reviewData || {
+        actualDurationMinutes: 0,
+        productivityRating: 0,
+        userNotes: '',
+        feedbackTimestamp: '',
+      },
     });
   
     setIsFormOpen(true);
@@ -293,10 +304,8 @@ export default function Calendar() {
         isStructural: formData.isStructural,
         isNonNegotiable: formData.isNonNegotiable,
         isCompleted: formData.isCompleted,
-        actualDurationMinutes: formData.actualDurationMinutes,
-        productivityRating: formData.productivityRating,
-        userNotes: formData.userNotes,
-        feedbackTimestamp: formData.feedbackTimestamp,
+        isReviewed: formData.isReviewed,
+        reviewData: formData.reviewData,
       },
       repeat: formData.repeat,
       repeatUntil: formData.repeatUntil,
@@ -340,10 +349,8 @@ export default function Calendar() {
               isStructural: formData.isStructural,
               isNonNegotiable: formData.isNonNegotiable,
               isCompleted: formData.isCompleted,
-              actualDurationMinutes: formData.actualDurationMinutes,
-              productivityRating: formData.productivityRating,
-              userNotes: formData.userNotes,
-              feedbackTimestamp: formData.feedbackTimestamp,
+              isReviewed: formData.isReviewed,
+              reviewData: formData.reviewData,
             },
             repeat: formData.repeat,
             repeatUntil: formData.repeatUntil,
@@ -381,7 +388,6 @@ const handleDelete = () => {
 
   resetForm();
 };
-
 
   const handleDatesSet = (arg: DatesSetArg) => {
     setCurrentDate(arg.start);
@@ -460,6 +466,11 @@ const handleDelete = () => {
     : selectedTag === 'all'
     ? events
     : events.filter((ev: EventInput) => ev.extendedProps?.tag === selectedTag);
+
+    const visibleEvents = filteredEvents.filter(
+      (e) => !(e.extendedProps?.isCompleted && e.extendedProps?.isReviewed)
+    );
+    
 
   // Parse natural language event input (calls your API)
   const handleParseEvent = async () => {
@@ -566,10 +577,7 @@ const handleDelete = () => {
           </button>
           <button
             className="px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition"
-            onClick={() => {
-              localStorage.removeItem('calendarEvents');
-              setEvents([] as Event[]);
-            }}
+            onClick={() => clearAllEvents()}
           >
             Clear All Events
           </button>
@@ -593,7 +601,7 @@ const handleDelete = () => {
           editable={true}
           eventDrop={handleEventDrop}
           eventClick={handleEventClick}
-          events={filteredEvents}
+          events={visibleEvents}
           ref={calendarRef}
           datesSet={handleDatesSet}
           views={{
