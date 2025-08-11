@@ -78,6 +78,13 @@ Planned integrations:
 - Synced calendar events to homepage dashboard
 - Added productivity insights panel with upcoming event summary
 
+### Week 7,8,9 - July 21, 2025
+- Integrated AI-powered planning assistant with separate prompts for 'plan' and 'parse' modes
+- Built custom routing logic for AI event parsing and scheduling suggestions
+- Enhanced homepage dashboard with weekly recap, forecast, and tag-based insights
+- Implemented productivity mode feedback loop to tailor AI suggestions based on past event outcomes
+- Finalized all core MVP features, including event review, recurring event creation, and deletion syncing
+
 ## Quick Start
 ```bash
 # Clone the repository
