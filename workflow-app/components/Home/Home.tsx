@@ -358,3 +358,4 @@ const aiSummary = useAiSummary(metrics);
     </div>
   );
 }
+
