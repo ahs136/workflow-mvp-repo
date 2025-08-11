@@ -25,12 +25,23 @@ export default function Hero() {
         <p className="text-xl md:text-2xl text-white/90 mb-12 max-w-[600px] mx-auto">
           Declutter your mind and boost your productivity with AI-driven tools that revolutionize task management through user-centric design
         </p>
-        <Link
-          href="/home"
-          className="inline-flex items-center justify-center px-8 py-4 text-lg font-semibold text-primary bg-white rounded-full shadow-lg hover:-translate-y-1 transition-all duration-300 hover:shadow-xl"
-        >
-          Get Started Today
-        </Link>
+        <div className="flex flex-col items-center gap-4">
+          <Link
+            href="/home"
+            className="inline-flex items-center justify-center px-8 py-4 text-lg font-semibold text-primary bg-white rounded-full shadow-lg hover:-translate-y-1 transition-all duration-300 hover:shadow-xl"
+          >
+            Get Started Today
+          </Link>
+          <Link
+            href="/about"
+            className="inline-flex items-center justify-center px-8 py-4 text-lg font-semibold text-primary bg-white rounded-full shadow-lg hover:-translate-y-1 transition-all duration-300 hover:shadow-xl"
+          >
+            User Manual
+          </Link>
+          <p className="text-sm md:text-base text-white/90 mt-8 max-w-[600px] mx-auto font-medium">
+          Visit our about page for more info about your privacy, the app, and the developer!
+        </p>
+        </div>
       </div>
     </section>
   );

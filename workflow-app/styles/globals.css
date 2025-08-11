@@ -10,6 +10,7 @@
     --color-bg-light: #f8fafc;
   }
 
+
   body {
     @apply text-[#333] leading-relaxed;
     font-family: 'Inter', 'Segoe UI', sans-serif;
