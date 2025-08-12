@@ -5,11 +5,26 @@ import { Event, useEventContext } from "@/app/context/EventContext";
 import { startOfWeek, endOfWeek, isWithinInterval, parseISO } from 'date-fns';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 import { calculateMetrics } from "@/lib/utils/metrics";
+import { supabase } from "@/lib/utils/supabaseClient";
+import { User } from "@supabase/supabase-js";
+import { useRouter } from "next/navigation";
 
 
 export default function Home() {
   const { events, setEvents } = useEventContext();
   const [today, setToday] = useState(new Date());
+  const [user, setUser] = useState<User | null>(null);
+  const router = useRouter();
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      if (!data.session?.user) {
+        router.push('/');
+      } else {
+      setUser(data.session?.user ?? null);
+      }
+    });
+  }, []);
 
   useEffect(() => {
     const stored = localStorage.getItem("calendarEvents");
@@ -22,6 +37,22 @@ export default function Home() {
       setEvents(parsed);
     }
   }, []);
+
+  useEffect(() => {
+    async function createProfile() {
+      if (!user) return;
+      const { data } = await supabase.from('profiles').select('id').eq('id', user.id).single();
+      if (!data) {
+        await supabase.from('profiles').insert({
+          id: user.id,
+          display_name: user.user_metadata.full_name || '',
+          avatar_url: user.user_metadata.avatar_url || '',
+        });
+      }
+    }
+    createProfile();
+  }, [user]);
+  
 
   // #5 logic
   const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
@@ -139,7 +170,7 @@ const dayMap = {
 
 pastWeekEvents.forEach(e => {
   const day = new Date(e.start).toLocaleDateString('en-US', { weekday: 'short' });
-  const prod = e.extendedProps?.reviewData?.productivityRating ?? 0;
+  const prod = e.extendedProps?.reviewData?.productivityRating ?? 3;
   if(dayMap[day as keyof typeof dayMap]) {
     dayMap[day as keyof typeof dayMap].total += prod;
     dayMap[day as keyof typeof dayMap].count += 1;
@@ -161,7 +192,7 @@ const oldAiInsight = highestDay.productivity > 0
 
 // #9 logic
 const metrics = calculateMetrics(events);
-function useAiSummary(metrics) {
+function useAiSummary(metrics: any) {
   const [summary, setSummary] = useState("Loading AI summary...");
 
   useEffect(() => {
@@ -297,14 +328,14 @@ const aiSummary = useAiSummary(metrics);
 
         {/* 5. Busiest Day of the Week */}
         <div className="bg-white p-4 rounded-lg shadow">
-          <h2 className="text-xl font-semibold mb-2">This Week’s Peak</h2>
+          <h2 className="text-xl font-semibold mb-2">This Week's Peak</h2>
           <p className="text-sm text-gray-700">📅 {busiestDay}</p>
         </div>
 
 
         {/* 6. Productivity Metrics */}
         <div className="bg-white p-4 rounded-lg shadow">
-          <h2 className="text-xl font-semibold mb-2">Productivity Analytics</h2>
+          <h2 className="text-xl font-semibold mb-2">Weekly Load</h2>
           <div className="text-sm text-gray-700">
             {productivityText}
             <br />

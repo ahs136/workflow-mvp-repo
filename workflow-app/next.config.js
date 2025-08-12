@@ -3,4 +3,5 @@ const nextConfig = {
   transpilePackages: ['@fullcalendar'],
 };
 
+
 module.exports = nextConfig;

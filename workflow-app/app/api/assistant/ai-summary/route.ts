@@ -25,7 +25,7 @@ Summary:
       model: "gpt-4o-mini",
       messages: [{ role: "user", content: prompt }],
       temperature: 0.6,
-      max_tokens: 60,
+      max_tokens: 100,
     });
 
     const summary = response.choices[0].message?.content?.trim() || "";
