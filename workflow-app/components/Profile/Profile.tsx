@@ -35,7 +35,7 @@ export default function Profile() {
           <h2 className="text-lg font-semibold text-gray-900 mb-4">User Information</h2>
           <div className="space-y-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700">ID</label>
+              <label className="block text-sm font-medium text-gray-700">User ID</label>
               <p className="text-gray-900">{user?.id}</p>
             </div>
             <div>

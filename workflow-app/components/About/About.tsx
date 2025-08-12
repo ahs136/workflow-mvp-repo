@@ -1,19 +1,60 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/utils/supabaseClient";
+import { User } from "@supabase/supabase-js";
 
 export default function About() {
   const [isManualOpen, setIsManualOpen] = useState(false);
   const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
   const [isDeveloperOpen, setIsDeveloperOpen] = useState(false);
-  // Delete My Data handler (MVP: clears localStorage only)
-  const handleDeleteData = () => {
-    if (window.confirm("Are you sure you want to delete all your locally stored data? This cannot be undone.")) {
-      localStorage.clear();
-      alert("All locally stored data has been deleted. If you have a Supabase account, please contact support to delete remote data.");
-    }
-  };
+  const [user, setUser] = useState<User | null>(null);
 
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setUser(data.session?.user ?? null);
+    });
+  }, []);
+
+  const handleDeleteData = async () => {
+    if (!user) {
+      alert('You must be logged in to delete your data.');
+      return;
+    }
+  
+    if (!window.confirm("Are you sure you want to permanently delete all your data (local + remote)? This cannot be undone.")) {
+      return;
+    }
+  
+    const errors = [];
+
+      
+    const { error: usageError } = await supabase.from('usage').delete().eq('user_id', user.id);
+    if (usageError) errors.push('usage');
+
+    const { error: chatHistoryError } = await supabase.from('chats').delete().eq('user_id', user.id);
+    if (chatHistoryError) errors.push('chat history');
+
+  
+    const { error: eventsError } = await supabase.from('events').delete().eq('user_id', user.id);
+    if (eventsError) errors.push('events');
+
+    const { error: userError } = await supabase.from('profiles').delete().eq('id', user.id);
+    if (userError) errors.push('user');
+  
+    if (errors.length > 0) {
+      alert(`Failed to delete the following data: ${errors.join(', ')}. Please try again later.`);
+      console.error('Deletion errors:', errors);
+      return;
+    }
+  
+    await supabase.auth.signOut();
+    localStorage.clear();
+  
+    alert("All your data has been deleted (local and remote). You have been signed out.");
+  };
+  
+  
   return (
     <div className="w-full max-w-3xl space-y-6">
       {/* User Manual Section */}

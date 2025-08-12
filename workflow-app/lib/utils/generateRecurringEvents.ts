@@ -1,15 +1,5 @@
 import { nanoid } from "nanoid";
-
-export type EventInput = {
-  id?: string;
-  title: string;
-  start: string; // ISO string
-  end: string;   // ISO string
-  repeat?: "none" | "daily" | "weekly" | "weekdays" | "customDays";
-  byDay?: string[]; // e.g. ["MO", "WE"]
-  repeatUntil?: string; // ISO string date limit for recurrence
-  // other props can be added as needed
-};
+import { EventInput } from "@fullcalendar/core";
 
 const WEEKDAY_MAP: Record<string, number> = {
   SU: 0,
@@ -21,11 +11,6 @@ const WEEKDAY_MAP: Record<string, number> = {
   SA: 6,
 };
 
-/**
- * Generates recurring event instances based on a base event with recurrence rules.
- * The base event itself is NOT included in the returned array.
- * Each generated instance will have a new unique id and a recurringBaseId pointing to the base event's id.
- */
 export function generateRecurringEvents(event: EventInput): EventInput[] {
   if (!event.id) {
     event.id = nanoid(); // ensure base event has an id
@@ -36,19 +21,18 @@ export function generateRecurringEvents(event: EventInput): EventInput[] {
   const start = new Date(event.start);
   const end = new Date(event.end);
 
-  // Recurrence end date or default 30 days after start
   const repeatEnd = event.repeatUntil
     ? new Date(event.repeatUntil)
     : new Date(start.getTime() + 1000 * 60 * 60 * 24 * 30);
 
   // Base event props for recurrences, excluding recurrence-specific fields
-  const base: Omit<EventInput, "start" | "end" | "id" | "repeat" | "repeatUntil" | "byDay"> & { recurringBaseId: string } = {
+  const base: Omit<EventInput, "start" | "end" | "id" | "repeat" | "repeatUntil" | "byDay"> & { group_id: string } = {
     ...event,
-    id: undefined,        // generated per recurrence below
+    id: undefined,        // will generate for each recurrence
     repeat: undefined,
     repeatUntil: undefined,
     byDay: undefined,
-    recurringBaseId: event.id,
+    group_id: event.id,    // IMPORTANT: set group_id to base event's id here
   };
 
   const originalStartISO = start.toISOString();
@@ -80,7 +64,7 @@ export function generateRecurringEvents(event: EventInput): EventInput[] {
       .filter((day) => day !== undefined);
 
     let current = new Date(start);
-    current.setHours(0, 0, 0, 0); // normalize to midnight for day comparison
+    current.setHours(0, 0, 0, 0);
 
     while (current <= repeatEnd) {
       if (validDays.includes(current.getDay())) {
@@ -103,7 +87,7 @@ export function generateRecurringEvents(event: EventInput): EventInput[] {
     }
   }
 
-  // You can add other repeat modes like 'weekdays', 'customDays' here as needed
+  // add other repeat modes here if needed...
 
   return events;
 }

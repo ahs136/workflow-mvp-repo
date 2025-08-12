@@ -1,5 +1,5 @@
 // app/api/parse-events/route.ts
-import { generateParseEventPrompt } from "@/lib/ai/prompts/parseEventPrompt";
+import { generateParseEventPrompt } from "@/lib/ai/prompts/parseSingleEventPrompt";
 import { NextResponse } from "next/server";
 import { OpenAI } from "openai";
 import { nanoid } from "nanoid";

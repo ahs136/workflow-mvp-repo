@@ -9,9 +9,25 @@ import { EventInput, DatesSetArg } from '@fullcalendar/core';
 import { nanoid } from 'nanoid';
 import { generateRecurringEvents } from '@/lib/utils/generateRecurringEvents';
 import { Event, useEventContext } from '@/app/context/EventContext';
+import { supabase } from '@/lib/utils/supabaseClient';
+import { User } from '@supabase/supabase-js';
+import { useRouter } from 'next/navigation';
+
 
 export default function Calendar() {
   const calendarRef = useRef<FullCalendar>(null);
+  const router = useRouter();
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      if (!data.session?.user) {
+        router.push('/');
+      } else {
+        setUser(data.session?.user ?? null);
+      }
+    });
+  }, []);
 
   const defaultTagColors: Record<string, string> = {
     deadline: '#dc2626',
@@ -27,7 +43,7 @@ export default function Calendar() {
   const { events, setEvents, clearAllEvents } = useEventContext();
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [selectedEvent, setSelectedEvent] = useState<EventInput|null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<EventInput |null>(null);
   const [calendarHeight, setCalendarHeight] = useState(650);
   const [selectedTag, setSelectedTag]= useState('all');
   const [structuralViewOn, setStructuralViewOn] = useState(false);
@@ -36,6 +52,7 @@ export default function Calendar() {
   const STORAGE_KEY = 'calendarEvents';
   const [formData, setFormData] = useState({
     id:          nanoid(),
+    user_id:     user?.id,
     title:       '',
     description: '',
     start:       '',
@@ -72,6 +89,64 @@ export default function Calendar() {
   }, []);
 
   useEffect(() => {
+    async function fetchEvents() {
+      if (!user) return;
+  
+      const { data, error } = await supabase
+        .from('events')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('start_time', { ascending: true });
+  
+      if (error) {
+        console.error('Error loading events:', error);
+        return;
+      }
+  
+      const formattedEvents: EventInput[] = data.map((row: any) => ({
+        id: row.id,
+        title: row.title,
+        // protect against null end_time
+        start: row.start_time ? new Date(row.start_time) : undefined,
+        end: row.end_time ? new Date(row.end_time) : undefined,
+        backgroundColor: row.color || defaultTagColors[row.tag] || undefined,
+        textColor: '#fff',
+        extendedProps: {
+          // put all DB fields inside extendedProps in camelCase form
+          description: row.description ?? '',
+          location: row.location ?? '',
+          reminder: row.reminder ?? 'none',
+          tag: row.tag ?? 'deadline',
+          color: row.color ?? defaultTagColors[row.tag ?? 'deadline'],
+          isStructural: !!row.is_structural,
+          isNonNegotiable: !!row.is_non_negotiable,
+          repeat: row.repeat ?? 'none',
+          repeatUntil: row.repeat_until ?? null,
+          byDay: row.by_day ?? [],
+          createdByAI: !!row.created_by_ai,
+          isCompleted: !!row.is_completed,
+          isReviewed: !!row.is_reviewed,
+          reviewData: {
+            actualDurationMinutes: row.actual_duration_minutes ?? 0,
+            productivityRating: row.productivity_rating ?? 0,
+            userNotes: row.user_notes ?? '',
+            feedbackTimestamp: row.feedback_timestamp ?? null,
+          },
+          createdAt: row.created_at ?? null,
+          updatedAt: row.updated_at ?? null,
+          // include groupId if you stored it in DB (if not, ignore)
+          groupId: row.group_id ?? null,
+        },
+      }));
+  
+      setEvents(formattedEvents as Event[]);
+    }
+  
+    fetchEvents();
+  }, [user]);
+  
+
+ useEffect(() => {
     if (parsedEvent) {
       const event = {
         ...parsedEvent,
@@ -84,6 +159,7 @@ export default function Calendar() {
 
       setFormData({
         id: event.id,
+        user_id: user?.id,
         title: event.title || '',
         start: event.start ? toDatetimeLocal(event.start as string) : '',
         end: event.end ? toDatetimeLocal(event.end as string) : '',
@@ -100,7 +176,8 @@ export default function Calendar() {
         createdByAI: !!event.extendedProps?.createdByAI,
         isCompleted: !!event.extendedProps?.isCompleted,
         isReviewed: event.extendedProps?.isReviewed || false,
-        reviewData: event.extendedProps?.reviewData
+        reviewData: event.extendedProps?.reviewData,
+        updatedAt: event.extendedProps?.updatedAt || null,
       });
       
       setIsFormOpen(true);
@@ -109,19 +186,115 @@ export default function Calendar() {
     }
   }, [parsedEvent]);
 
+  function normalizeTimestamp(value: unknown): string | null {
+    if (value === null || value === undefined) return null;
+    if (typeof value === 'string' && value.trim() === '') return null;
+  
+    if (value instanceof Date) return value.toISOString();
+  
+    if (typeof value === 'string') {
+      const date = new Date(value);
+      if (!isNaN(date.getTime())) return date.toISOString();
+    }
+  
+    return null;
+  }
+  
 
-  // --- Helpers ---
-  function saveEventsToLocalStorage(evts: EventInput[]) {
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify(
-        evts.map((e) => ({
-          ...e,
-          start: e.start instanceof Date ? e.start.toISOString() : e.start,
-          end:   e.end   instanceof Date ? e.end.toISOString()   : e.end,
-        }))
-      )
-    );
+  async function saveEvent(event: EventInput) {
+    console.log('🤖 [Calendar Save Event] Received event:', event);
+    console.log('start_time:', event.start);
+    console.log('end_time:', event.end);
+    console.log('repeat_until:', event.repeatUntil);
+
+    if (!user) return;
+  
+    const ep = event.extendedProps || {};
+  
+    const row = {
+      id: event.id,
+      group_id: event.groupId || null,
+      user_id: user.id,
+      title: event.title,
+      description: ep.description || null,
+      start_time: normalizeTimestamp(event.start),
+      end_time: normalizeTimestamp(event.end),
+      location: ep.location || null,
+      reminder: ep.reminder || 'none',
+      tag: ep.tag || 'deadline',
+      color: ep.color || null,
+      is_structural: !!ep.isStructural,
+      is_non_negotiable: !!ep.isNonNegotiable,
+      repeat: ep.repeat || 'none',
+      repeat_until: ep.repeatUntil || null,
+      by_day: ep.byDay ?? [],
+      created_by_ai: !!ep.createdByAI,
+      is_completed: !!ep.isCompleted,
+      is_reviewed: !!ep.isReviewed,
+      actual_duration_minutes: ep.reviewData?.actualDurationMinutes || 0,
+      productivity_rating: ep.reviewData?.productivityRating || 0,
+      user_notes: ep.reviewData?.userNotes || null,
+      feedback_timestamp: ep.reviewData?.feedbackTimestamp || null,
+      created_at: ep.createdAt || new Date().toISOString(),
+      updated_at: ep.updatedAt || new Date().toISOString(),
+    };
+  
+    const { error } = await supabase.from('events').upsert([row], { onConflict: 'id' });
+  
+    if (error) {
+      console.error('Error saving event:', error);
+    } else {
+      console.log('Saved event', row.id);
+    }
+  }
+  
+  async function saveEvents(eventList: EventInput[]) {
+    console.log('🤖 [Calendar Save Events] Received eventList:', eventList);
+    
+    console.log('start_time:', eventList[0].start);
+    console.log('end_time:', eventList[0].end);
+    console.log('repeat_until:', eventList[0].repeatUntil);
+
+    if (!user) return;
+  
+    const rows = eventList.map((e) => {
+      const ep = e.extendedProps || {};
+      return {
+        id: e.id,
+        group_id: e.groupId || null,
+        user_id: user.id,
+        title: e.title,
+        description: ep.description || null,
+        start_time: normalizeTimestamp(e.start),
+        end_time: normalizeTimestamp(e.end),
+        location: ep.location || null,
+        reminder: ep.reminder || 'none',
+        tag: ep.tag || 'deadline',
+        color: ep.color || null,
+        is_structural: !!ep.isStructural,
+        is_non_negotiable: !!ep.isNonNegotiable,
+        repeat: ep.repeat || 'none',
+        repeat_until: normalizeTimestamp(ep.repeatUntil) || null,
+        by_day: ep.byDay ?? [],
+        created_by_ai: !!ep.createdByAI,
+        is_completed: !!ep.isCompleted,
+        is_reviewed: !!ep.isReviewed,
+        actual_duration_minutes: ep.reviewData?.actualDurationMinutes || 0,
+        productivity_rating: ep.reviewData?.productivityRating || 0,
+        user_notes: ep.reviewData?.userNotes || null,
+        feedback_timestamp: ep.reviewData?.feedbackTimestamp || null,
+        created_at: ep.createdAt || new Date().toISOString(),
+        updated_at: ep.updatedAt || new Date().toISOString(),
+      };
+    });
+  
+    const { error } = await supabase.from('events').upsert(rows, { onConflict: 'id' });
+  
+    if (error) {
+      console.error('Error bulk saving events:', error);
+    } else {
+      console.log('Bulk saved', rows.length, 'events');
+    }
   }
   
   
@@ -155,6 +328,7 @@ export default function Calendar() {
   const resetForm = () => {
     setFormData({
       id:          nanoid(),
+      user_id:     user?.id,
       title:       '',
       description: '',
       start:       '',
@@ -190,6 +364,7 @@ export default function Calendar() {
   
     setFormData({
       id,
+      user_id: user?.id,
       title: '',
       description: '',
       location: '',
@@ -226,10 +401,19 @@ export default function Calendar() {
     const tag = fcEvent.extendedProps?.tag || 'deadline';
     const color = fcEvent.backgroundColor || defaultTagColors[tag];
   
-    setSelectedEvent(fcEvent); // optional, depends on if you're editing
+    setSelectedEvent({
+      id: fcEvent.id,
+      title: fcEvent.title,
+      start: fcEvent.start,
+      end: fcEvent.end ?? undefined,
+      backgroundColor: fcEvent.backgroundColor,
+      textColor: fcEvent.textColor,
+      extendedProps: { ...fcEvent.extendedProps },
+    });
   
     setFormData({
       id:             fcEvent.id || nanoid(),
+      user_id:        user?.id,
       title:          fcEvent.title || '',
       description:    fcEvent.extendedProps?.description || '',
       start:          formatDateForInput(new Date(fcEvent.start)),
@@ -259,7 +443,7 @@ export default function Calendar() {
   
   
 
-  const handleEventDrop = (info: any) => {
+  const handleEventDrop = async (info: any) => {
     const updated: EventInput = {
       id:             info.event.id,
       title:          info.event.title,
@@ -271,7 +455,7 @@ export default function Calendar() {
     };
     const updatedList = events.map((e) => (e.id === updated.id ? updated : e));
     setEvents(updatedList as Event[]);
-    saveEventsToLocalStorage(updatedList as EventInput[]);
+    await saveEvent(updated);
     scheduleReminder(updated);
   };
 
@@ -283,13 +467,15 @@ export default function Calendar() {
     }
   
     const bgColor = defaultTagColors[formData.tag] || '#3b82f6';
-
-    
+  
     // Use selectedEvent.id if editing, otherwise generate a new one
     const baseId = selectedEvent?.groupId ? selectedEvent.groupId : selectedEvent?.id ?? nanoid();
   
+    // Base event with group_id = baseId (important!)
     const base: EventInput = {
       id: baseId,
+      group_id: baseId,  // <-- assign group_id here
+      user_id: user?.id,
       title: formData.title,
       start: new Date(formData.start),
       end: formData.end ? new Date(formData.end) : undefined,
@@ -308,86 +494,117 @@ export default function Calendar() {
         reviewData: formData.reviewData,
       },
       repeat: formData.repeat,
-      repeatUntil: formData.repeatUntil,
+      repeatUntil: normalizeTimestamp(formData.repeatUntil),
       byDay: formData.byDay,
     } as any;
-
-  console.log('📝 [Form Submit] Created event with id:', baseId, base);
-
-  if (!selectedEvent || !selectedEvent.groupId?.trim()) {
-    // Editing or creating the base event => remove old base + recurrences, regenerate
-    const cleanedEvents = events.filter(
-      (e) => e.id !== baseId && e.groupId !== baseId
-    );
-    const recurrences = generateRecurringEvents(base);
-
-    const recurrencesWithGroupId = recurrences.map((e) => ({
-      ...e,
-      groupId: baseId,
-    }));
-
-    const updatedEvents = [...cleanedEvents, base, ...recurrencesWithGroupId];
-    setEvents(updatedEvents);
-    saveEventsToLocalStorage(updatedEvents);
-    [base, ...recurrencesWithGroupId].forEach(scheduleReminder);
-  } else {
-    // Editing a single recurrence => update only that event
-    const updatedEvents = events.map((e) =>
-      e.id === selectedEvent.id
-        ? {
-            ...e,
-            title: formData.title,
-            start: new Date(formData.start),
-            end: formData.end ? new Date(formData.end) : undefined,
-            extendedProps: {
-              ...e.extendedProps,
-              description: formData.description,
-              location: formData.location,
-              reminder: formData.reminder,
-              tag: formData.tag,
-              color: bgColor,
-              isStructural: formData.isStructural,
-              isNonNegotiable: formData.isNonNegotiable,
-              isCompleted: formData.isCompleted,
-              isReviewed: formData.isReviewed,
-              reviewData: formData.reviewData,
-            },
-            repeat: formData.repeat,
-            repeatUntil: formData.repeatUntil,
-            byDay: formData.byDay,
-          }
-        : e
-    );
-    setEvents(updatedEvents);
-    saveEventsToLocalStorage(updatedEvents);
-    const updatedEvent = updatedEvents.find((e) => e.id === selectedEvent.id);
-    if (updatedEvent) scheduleReminder(updatedEvent);
-  }
-
-  resetForm();
-};
   
+    console.log('📝 [Form Submit] Created event with id:', baseId, base);
+  
+    if (!selectedEvent || !selectedEvent.groupId?.trim()) {
+      // Editing or creating the base event => remove old base + recurrences, regenerate
+  
+      // Remove previous base and recurrences from events list
+      const cleanedEvents = events.filter(
+        (e) => e.id !== baseId && e.groupId !== baseId
+      );
+  
+      // Generate recurrences — these already have group_id = baseId
+      const recurrences = generateRecurringEvents(base);
+  
+      // Recurrences already have group_id, but to be safe:
+      const recurrencesWithGroupId = recurrences.map((e) => ({
+        ...e,
+        group_id: baseId,
+      }));
+  
+      // Put base event first, then recurrences
+      const updatedEvents = [...cleanedEvents, base, ...recurrencesWithGroupId];
+  
+      setEvents(updatedEvents as Event[]);
+      saveEvents(updatedEvents as EventInput[]);
+      [base, ...recurrencesWithGroupId].forEach(scheduleReminder);
+    } else {
+      // Editing a single recurrence => update only that event
+      const updatedEvents = events.map((e) =>
+        e.id === selectedEvent.id
+          ? {
+              ...e,
+              user_id: user?.id,
+              title: formData.title,
+              start: new Date(formData.start),
+              end: formData.end ? new Date(formData.end) : undefined,
+              extendedProps: {
+                ...e.extendedProps,
+                description: formData.description,
+                location: formData.location,
+                reminder: formData.reminder,
+                tag: formData.tag,
+                color: bgColor,
+                isStructural: formData.isStructural,
+                isNonNegotiable: formData.isNonNegotiable,
+                isCompleted: formData.isCompleted,
+                isReviewed: formData.isReviewed,
+                reviewData: formData.reviewData,
+              },
+              repeat: formData.repeat,
+              repeatUntil: normalizeTimestamp(formData.repeatUntil),
+              byDay: formData.byDay,
+              group_id: e.groupId || baseId,  // ensure group_id stays intact or fallback
+            }
+          : e
+      );
+      setEvents(updatedEvents as Event[]);
+      saveEvents(updatedEvents as EventInput[]);
+      const updatedEvent = updatedEvents.find((e) => e.id === selectedEvent.id);
+      if (updatedEvent) scheduleReminder(updatedEvent);
+    }
+  
+    resetForm();
+  };
+  
+  
+async function deleteEventFromSupabase(groupId: string) {
+  if (!user) return;
 
-const handleDelete = () => {
-  if (!selectedEvent) return;
+  const { error } = await supabase
+    .from('events')
+    .delete()
+    .eq('group_id', selectedEvent?.groupId)
+    .eq('user_id', user.id);
 
-  // If deleting a base event, delete all recurrences too
-  if (selectedEvent.groupId?.trim() === undefined || selectedEvent.groupId?.trim() === null) {
-    // This is the base event (no groupId)
+  if (error) {
+    console.error('Error deleting event:', error);
+  }
+}
+
+const handleDelete = async () => {
+  if (!selectedEvent || !user) return;
+
+  if (!selectedEvent.groupId || selectedEvent.groupId.trim() === '') {
+    // Base event: delete base + recurrences from local + supabase
     const filtered = events.filter(
       (e) => e.id !== selectedEvent.id && e.groupId !== selectedEvent.id
     );
     setEvents(filtered as Event[]);
-    saveEventsToLocalStorage(filtered as EventInput[]);
+    saveEvents(filtered as EventInput[]);
+
+    // Delete from supabase
+    await Promise.all([
+      deleteEventFromSupabase(selectedEvent.id),
+      supabase.from('events').delete().eq('groupId', selectedEvent.id).eq('user_id', user.id)
+    ]);
   } else {
-    // This is a recurrence event; delete only itself
+    // Recurrence: delete only itself from local + supabase
     const filtered = events.filter((e) => e.id !== selectedEvent.id);
     setEvents(filtered as Event[]);
-    saveEventsToLocalStorage(filtered as EventInput[]);
+    saveEvents(filtered as EventInput[]);
+
+    await deleteEventFromSupabase(selectedEvent.id);
   }
 
   resetForm();
 };
+
 
   const handleDatesSet = (arg: DatesSetArg) => {
     setCurrentDate(arg.start);

@@ -8,6 +8,8 @@ import React, {
   useEffect,
 } from "react";
 import { normalizeEvents } from "@/lib/utils/normalizeEvents";
+import { supabase } from "@/lib/utils/supabaseClient";
+import { User } from "@supabase/supabase-js";
 
 export interface Event {
   id: string;
@@ -49,6 +51,12 @@ export function useEventContext() {
 }
 
 export function EventProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setUser(data.session?.user ?? null);
+    });
+  }, []);
   const [events, setEvents] = useState<Event[]>(() => {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("calendarEvents");
@@ -75,11 +83,27 @@ export function EventProvider({ children }: { children: ReactNode }) {
     return () => clearInterval(interval);
   }, []);
 
-  const clearAllEvents = () => {
+  async function clearAllEvents() {
     localStorage.removeItem("calendarEvents");
-    setEvents([]);
-    console.log("Cleared all events from localStorage and React state.");
-  };
+    
+    if (!user?.id) {
+      console.error('No user logged in');
+      return;
+    }
+    
+    const { data, error } = await supabase
+      .from('events')
+      .delete()
+      .eq('user_id', user.id);  // delete ALL events for this user
+    
+    if (error) {
+      console.error('Error deleting events:', error);
+    } else {
+      console.log('All events deleted successfully');
+      setEvents([]);
+    }
+  }
+  
 
   return (
     <EventContext.Provider value={{ events, setEvents, clearAllEvents }}>
