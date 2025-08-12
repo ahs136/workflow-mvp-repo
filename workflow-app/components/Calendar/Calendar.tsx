@@ -165,19 +165,19 @@ export default function Calendar() {
         end: event.end ? toDatetimeLocal(event.end as string) : '',
         description: event.extendedProps?.description || '',
         location: event.extendedProps?.location || '',
-        tag: event.extendedProps?.tag || 'deadline',
-        color: event.extendedProps?.color || defaultTagColors[event.extendedProps?.tag || 'deadline'],
-        repeat: event.extendedProps?.repeat || 'none',
-        byDay: Array.isArray(event.extendedProps?.byDay) ? event.extendedProps?.byDay : [],
-        reminder: event.extendedProps?.reminder || 'none',
-        isStructural: !!event.extendedProps?.isStructural,
-        isNonNegotiable: !!event.extendedProps?.isNonNegotiable,
-        repeatUntil: event.extendedProps?.repeatUntil || '',
-        createdByAI: !!event.extendedProps?.createdByAI,
-        isCompleted: !!event.extendedProps?.isCompleted,
-        isReviewed: event.extendedProps?.isReviewed || false,
-        reviewData: event.extendedProps?.reviewData,
-        updatedAt: event.extendedProps?.updatedAt || null,
+        tag: event.tag || 'deadline',
+        color: event.color || defaultTagColors[event.tag || 'deadline'],
+        repeat: event.repeat || 'none',
+        byDay: Array.isArray(event.byDay) ? event.byDay : [],
+        reminder: event.reminder || 'none',
+        isStructural: !!event.isStructural,
+        isNonNegotiable: !!event.isNonNegotiable,
+        repeatUntil: event.repeatUntil || '',
+        createdByAI: !!event.createdByAI,
+        isCompleted: !!event.isCompleted,
+        isReviewed: event.isReviewed || false,
+        reviewData: event.reviewData,
+        updatedAt: event.updatedAt || null,
       });
       
       setIsFormOpen(true);
@@ -203,9 +203,6 @@ export default function Calendar() {
 
   async function saveEvent(event: EventInput) {
     console.log('🤖 [Calendar Save Event] Received event:', event);
-    console.log('start_time:', event.start);
-    console.log('end_time:', event.end);
-    console.log('repeat_until:', event.repeatUntil);
 
     if (!user) return;
   
@@ -213,7 +210,7 @@ export default function Calendar() {
   
     const row = {
       id: event.id,
-      group_id: event.groupId || null,
+      group_id: event.groupId ? event.groupId : null,
       user_id: user.id,
       title: event.title,
       description: ep.description || null,
@@ -250,10 +247,6 @@ export default function Calendar() {
   
   async function saveEvents(eventList: EventInput[]) {
     console.log('🤖 [Calendar Save Events] Received eventList:', eventList);
-    
-    console.log('start_time:', eventList[0].start);
-    console.log('end_time:', eventList[0].end);
-    console.log('repeat_until:', eventList[0].repeatUntil);
 
     if (!user) return;
   
@@ -261,7 +254,7 @@ export default function Calendar() {
       const ep = e.extendedProps || {};
       return {
         id: e.id,
-        group_id: e.groupId || null,
+        group_id: e.groupId ? e.groupId : null,
         user_id: user.id,
         title: e.title,
         description: ep.description || null,
@@ -474,7 +467,6 @@ export default function Calendar() {
     // Base event with group_id = baseId (important!)
     const base: EventInput = {
       id: baseId,
-      group_id: baseId,  // <-- assign group_id here
       user_id: user?.id,
       title: formData.title,
       start: new Date(formData.start),
@@ -509,20 +501,38 @@ export default function Calendar() {
       );
   
       // Generate recurrences — these already have group_id = baseId
-      const recurrences = generateRecurringEvents(base);
-  
-      // Recurrences already have group_id, but to be safe:
-      const recurrencesWithGroupId = recurrences.map((e) => ({
-        ...e,
+      const recurrences = generateRecurringEvents(base).map((r) => ({
+        ...r,
         group_id: baseId,
       }));
   
+      // Recurrences already have group_id, but to be safe:
+      const recurrencesWithProps = recurrences.map((e) => ({
+        ...e,
+        groupId: baseId, 
+        backgroundColor: base.backgroundColor,
+        color: base.color,
+        extendedProps: {
+          ...e.extendedProps,
+          tag: base.extendedProps?.tag,
+          reminder: base.extendedProps?.reminder,
+          isStructural: base.extendedProps?.isStructural,
+          isNonNegotiable: base.extendedProps?.isNonNegotiable,
+          isCompleted: base.extendedProps?.isCompleted,
+          isReviewed: base.extendedProps?.isReviewed,
+          reviewData: base.extendedProps?.reviewData,
+          createdByAI: base.extendedProps?.createdByAI,
+          createdAt: base.extendedProps?.createdAt,
+          updatedAt: base.extendedProps?.updatedAt,
+        },
+      }));
+    
       // Put base event first, then recurrences
-      const updatedEvents = [...cleanedEvents, base, ...recurrencesWithGroupId];
-  
+      const updatedEvents = [...cleanedEvents, base, ...recurrencesWithProps];
+    
       setEvents(updatedEvents as Event[]);
       saveEvents(updatedEvents as EventInput[]);
-      [base, ...recurrencesWithGroupId].forEach(scheduleReminder);
+      [base, ...recurrencesWithProps].forEach(scheduleReminder);
     } else {
       // Editing a single recurrence => update only that event
       const updatedEvents = events.map((e) =>
@@ -563,48 +573,68 @@ export default function Calendar() {
   };
   
   
-async function deleteEventFromSupabase(groupId: string) {
-  if (!user) return;
-
-  const { error } = await supabase
-    .from('events')
-    .delete()
-    .eq('group_id', selectedEvent?.groupId)
-    .eq('user_id', user.id);
-
-  if (error) {
-    console.error('Error deleting event:', error);
+  async function deleteEventFromSupabase(groupId: string) {
+    if (!user) return;
+  
+    const { error } = await supabase
+      .from('events')
+      .delete()
+      .eq('group_id', groupId)
+      .eq('user_id', user.id);
+  
+    if (error) {
+      console.error('Error deleting events by group_id:', error);
+      throw error;
+    }
   }
-}
-
-const handleDelete = async () => {
-  if (!selectedEvent || !user) return;
-
-  if (!selectedEvent.groupId || selectedEvent.groupId.trim() === '') {
-    // Base event: delete base + recurrences from local + supabase
-    const filtered = events.filter(
-      (e) => e.id !== selectedEvent.id && e.groupId !== selectedEvent.id
-    );
-    setEvents(filtered as Event[]);
-    saveEvents(filtered as EventInput[]);
-
-    // Delete from supabase
-    await Promise.all([
-      deleteEventFromSupabase(selectedEvent.id),
-      supabase.from('events').delete().eq('groupId', selectedEvent.id).eq('user_id', user.id)
-    ]);
-  } else {
-    // Recurrence: delete only itself from local + supabase
-    const filtered = events.filter((e) => e.id !== selectedEvent.id);
-    setEvents(filtered as Event[]);
-    saveEvents(filtered as EventInput[]);
-
-    await deleteEventFromSupabase(selectedEvent.id);
+  
+  async function deleteEventById(id: string) {
+    if (!user) return;
+  
+    const { error } = await supabase
+      .from('events')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', user.id);
+  
+    if (error) {
+      console.error('Error deleting event by id:', error);
+      throw error;
+    }
   }
+  
+  const handleDelete = async () => {
+    if (!selectedEvent || !user) return;
+  
+    try {
+      if (!selectedEvent.groupId || selectedEvent.groupId.trim() === '') {
+        // Base event: delete base + recurrences
+        const filtered = events.filter(
+          (e) => e.id !== selectedEvent.id && e.groupId !== selectedEvent.id
+        );
+        setEvents(filtered as Event[]);
+        saveEvents(filtered as EventInput[]);
+  
+        // Delete base event and all recurrences
+        await supabase.from('events').delete().or(`id.eq.${selectedEvent.id},group_id.eq.${selectedEvent.id}`).eq('user_id', user.id)
 
-  resetForm();
-};
-
+      } else {
+        // Recurrence: delete only itself
+        const filtered = events.filter((e) => e.id !== selectedEvent.id);
+        setEvents(filtered as Event[]);
+        saveEvents(filtered as EventInput[]);
+  
+        await deleteEventById(selectedEvent.id);
+      }
+  
+      resetForm();
+      setIsFormOpen(false);
+    } catch (error) {
+      console.error('Error deleting event(s):', error);
+      // Optionally show UI error feedback here
+    }
+  };
+  
 
   const handleDatesSet = (arg: DatesSetArg) => {
     setCurrentDate(arg.start);
@@ -838,7 +868,7 @@ const handleDelete = async () => {
 {isFormOpen && (
   <div
     className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50"
-    onClick={resetForm}
+    onClick={resetForm} 
   >
     <form
       className="bg-white rounded-lg p-6 max-w-4xl w-full shadow-lg grid grid-cols-2 gap-6"
@@ -1016,7 +1046,10 @@ const handleDelete = async () => {
             <button
               type="button"
               className="bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded"
-              onClick={handleDelete}
+              onClick={() => {
+                handleDelete();
+                resetForm();
+              }}
             >
               Delete
             </button>

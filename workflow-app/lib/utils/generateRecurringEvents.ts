@@ -1,55 +1,59 @@
-import { nanoid } from "nanoid";
 import { EventInput } from "@fullcalendar/core";
 
 const WEEKDAY_MAP: Record<string, number> = {
-  SU: 0,
-  MO: 1,
-  TU: 2,
-  WE: 3,
-  TH: 4,
-  FR: 5,
-  SA: 6,
+  SU: 0, MO: 1, TU: 2, WE: 3, TH: 4, FR: 5, SA: 6
 };
 
+function toISODateTime(dateLike: string | Date | undefined | null): string | null {
+  if (!dateLike) return null;
+  const d = dateLike instanceof Date ? dateLike : new Date(dateLike);
+  if (isNaN(d.getTime())) return null;
+  return d.toISOString();
+}
+
+/** deterministic id: baseId + compact ISO (safe for text id column) */
+function recurrenceId(baseId: string, isoStart: string) {
+  // strip characters that can be problematic
+  const compact = isoStart.replace(/[:.]/g, "").replace(/Z$/, "Z");
+  return `${baseId}-${compact}`;
+}
+
 export function generateRecurringEvents(event: EventInput): EventInput[] {
-  if (!event.id) {
-    event.id = nanoid(); // ensure base event has an id
-  }
+  if (!event.id) throw new Error("Base event must have an id before generating recurrences.");
 
-  const events: EventInput[] = [];
+  const results: EventInput[] = [];
 
-  const start = new Date(event.start);
-  const end = new Date(event.end);
+  const startISO = toISODateTime(event.start as string | Date);
+  const endISO = toISODateTime(event.end as string | Date);
+  if (!startISO || !endISO) return results; // invalid dates -> nothing to generate
 
-  const repeatEnd = event.repeatUntil
-    ? new Date(event.repeatUntil)
-    : new Date(start.getTime() + 1000 * 60 * 60 * 24 * 30);
+  const start = new Date(startISO);
+  const end = new Date(endISO);
+  const durationMs = end.getTime() - start.getTime();
 
-  // Base event props for recurrences, excluding recurrence-specific fields
-  const base: Omit<EventInput, "start" | "end" | "id" | "repeat" | "repeatUntil" | "byDay"> & { group_id: string } = {
-    ...event,
-    id: undefined,        // will generate for each recurrence
-    repeat: undefined,
-    repeatUntil: undefined,
-    byDay: undefined,
-    group_id: event.id,    // IMPORTANT: set group_id to base event's id here
-  };
+  const repeatUntilISO = toISODateTime((event as any).repeatUntil);
+  // default: 30 days after start if repeatUntil missing
+  const repeatEnd = repeatUntilISO ? new Date(repeatUntilISO) : new Date(start.getTime() + 1000 * 60 * 60 * 24 * 30);
 
   const originalStartISO = start.toISOString();
 
+  const baseId = String(event.id);
+
   if (event.repeat === "daily") {
-    let current = new Date(start);
-    current.setHours(start.getHours(), start.getMinutes(), start.getSeconds(), start.getMilliseconds());
-
+    const current = new Date(start);
+    // keep same time-of-day as start
     while (current <= repeatEnd) {
-      const isoStart = current.toISOString();
-      if (isoStart !== originalStartISO) {
+      const currentISO = current.toISOString();
+      if (currentISO !== originalStartISO) {
         const newStart = new Date(current);
-        const newEnd = new Date(newStart.getTime() + (end.getTime() - start.getTime()));
+        const newEnd = new Date(newStart.getTime() + durationMs);
 
-        events.push({
-          ...base,
-          id: nanoid(),
+        results.push({
+          // spread minimal base props to avoid accidentally copying recurrence fields
+          title: event.title,
+          extendedProps: (event as any).extendedProps || (event as any),
+          id: recurrenceId(baseId, newStart.toISOString()),
+          groupId: baseId,
           start: newStart.toISOString(),
           end: newEnd.toISOString(),
         });
@@ -58,26 +62,29 @@ export function generateRecurringEvents(event: EventInput): EventInput[] {
     }
   }
 
-  if (event.repeat === "weekly" && Array.isArray(event.byDay) && event.byDay.length > 0) {
-    const validDays = event.byDay
-      .map((day) => WEEKDAY_MAP[day])
-      .filter((day) => day !== undefined);
+  if (event.repeat === "weekly" && Array.isArray((event as any).byDay) && (event as any).byDay.length) {
+    const validDays = (event as any).byDay
+      .map((d: string) => WEEKDAY_MAP[d])
+      .filter((d: number) => d !== undefined);
 
-    let current = new Date(start);
+    // iterate day-by-day from start to repeatEnd
+    const current = new Date(start);
     current.setHours(0, 0, 0, 0);
 
     while (current <= repeatEnd) {
       if (validDays.includes(current.getDay())) {
+        // set time-of-day to original start
         const newStart = new Date(current);
         newStart.setHours(start.getHours(), start.getMinutes(), start.getSeconds(), start.getMilliseconds());
-        const newEnd = new Date(newStart.getTime() + (end.getTime() - start.getTime()));
+        const newEnd = new Date(newStart.getTime() + durationMs);
 
         const isoStart = newStart.toISOString();
-
         if (isoStart !== originalStartISO) {
-          events.push({
-            ...base,
-            id: nanoid(),
+          results.push({
+            title: event.title,
+            extendedProps: (event as any).extendedProps || (event as any),
+            id: recurrenceId(baseId, isoStart),
+            groupId: baseId,
             start: isoStart,
             end: newEnd.toISOString(),
           });
@@ -87,7 +94,5 @@ export function generateRecurringEvents(event: EventInput): EventInput[] {
     }
   }
 
-  // add other repeat modes here if needed...
-
-  return events;
+  return results;
 }
