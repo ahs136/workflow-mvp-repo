@@ -6,12 +6,14 @@ export function generatePlanPageSchedulingPrompt({
   lastResponse,
   userFeedback,
   feedbackSummary = "",
+  user_id,
 }: {
   userInput: string;
   currentEvents: any[];
   lastResponse?: string;
   userFeedback?: string;
   feedbackSummary?: string;
+  user_id: string;
 }) {
   const now = new Date().toISOString();
   const defaultTagColors = {
@@ -48,6 +50,7 @@ ${events.slice(0, 15).map(e => {
   return `  • ${e.title} | ${e.start}-${e.end} | ID: ${e.id}`;
 }).join("\n")}
 ${events.length > 15 ? `\n  • …and ${events.length - 15} more events` : ""}
+- **User ID:** ${user_id}
 
 Events may be tagged: **deadline**, **meeting**, **class**, **focus**, **workout**, **social**, **personal**.  
 Some are **structural** (fixed blocks like classes/work), some are **non-negotiable** (personal obligations).
@@ -96,6 +99,7 @@ You are REQUIRED to fill out **every** field in every event object, even if the 
 
 {
   "id": string,                 // required — a unique non-empty id with multiple characters (e.g. "e0c9s2a1" or "9f87ghk2"), do not leave id blank or null.
+  "user_id": string,            // required — the id of the user who created the event (this is the user_id from the user table)
   "title": string,              // required — A short, clear title (do not include any date/time here)
   "description": string,        // optional — Extra details about the event
   "start": string,              // required — ISO 8601 datetime format (e.g., "2025-07-25T14:00:00-04:00")

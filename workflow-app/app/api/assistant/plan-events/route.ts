@@ -4,15 +4,19 @@ import { OpenAI } from "openai";
 import { generatePlanPageSchedulingPrompt } from "@/lib/ai/prompts/planPageSchedulingPrompt";
 import { generatePlanPageAssistantPrompt } from "@/lib/ai/prompts/planPageAssistantPrompt";
 
-
+import { User } from "@supabase/supabase-js";
+import { supabase } from "@/lib/utils/supabaseClient";
+import { useEffect, useState } from "react";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+
+
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { mode, userInput, currentEvents: events, lastResponse, userFeedback } = body;
+  const { mode, userInput, currentEvents: events, lastResponse, userFeedback, user_id } = body;
 
   if (!userInput && !userFeedback) {
     return NextResponse.json({ error: "No userInput provided" }, { status: 400 });
@@ -80,6 +84,7 @@ export async function POST(req: NextRequest) {
       lastResponse,
       userFeedback,
       feedbackSummary,
+      user_id,
     });
   } else if (mode === "plan") {
     prompt = generatePlanPageAssistantPrompt({
