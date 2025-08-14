@@ -100,7 +100,7 @@ export default function About() {
               </li>
               <li>
                 <strong className="text-primary">AI Assistance:</strong> The AI
-                can assist with adding events and scheduling. In the future, it
+                can assist with adding events and scheduling. You can add/delete multiple events at once, just by providing some context in the chat. In the future, it
                 will also help with studying, sending emails, and syncing with
                 external calendars. It improves over time with the feedback you
                 give in chats and from event outcomes on the Productivity page.
@@ -108,20 +108,20 @@ export default function About() {
               <li>
                 <strong className="text-primary">Productivity Page:</strong>{" "}
                 Currently, this tracks productivity and gives insights based on
-                completed events. Future updates will add timers, focus modes,
+                completed events. All events are marked as completed when their end time has passed, or the user marks it themselves. Once an event is completed, it is sent to the productivity page to be reviewed (if feedback is relevant).
+                After an event is reviewed it is removed from calendar. Future updates will add timers, focus modes,
                 and study-with-GPT tools.
               </li>
               <li>
                 <strong className="text-primary">Future Enhancements:</strong>
-                <ul className="list-disc pl-5 space-y-2 text-text/80">
+                <ul className="mt-1 list-disc pl-5 space-y-2 text-text/80">
                   <li>Dedicated study mode on the productivity page</li>
                   <li>
                     More personalization for the AI, calendar appearance, and
                     productivity tools
                   </li>
                   <li>
-                    Premium version with unlimited, highly personalized AI
-                    assistant
+                    Premium version with unlimited AI usage, and highly personalized assistant
                   </li>
                 </ul>
               </li>
