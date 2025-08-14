@@ -16,14 +16,35 @@ export default function useRequireAuth() {
 
       if (!session) {
         router.replace('/');
-      } else {
-        setLoading(false);
+        return;
       }
+
+      // If logged in, check/create profile
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: existingProfile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+
+        if (!existingProfile) {
+          await supabase.from('profiles').insert({
+            id: user.id,
+            email: user.email,
+            full_name: user.user_metadata.full_name || '',
+            avatar_url: user.user_metadata.avatar_url || '',
+            created_at: new Date().toISOString(),
+          });
+        }
+      }
+
+      setLoading(false);
     };
 
     checkSession();
 
-    // Optional: listen for auth changes (sign out)
+    // Listen for auth changes
     const { data: listener } = supabase.auth.onAuthStateChange(
       (event, session) => {
         if (!session) {
