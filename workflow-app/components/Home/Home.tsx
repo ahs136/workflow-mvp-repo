@@ -205,7 +205,7 @@ function useAiSummary(metrics: any, userId: string) {
     }
 
     generateSummary();
-  }, [user?.id, 3600]);
+  }, [user?.id]);
 
   return summary;
 }

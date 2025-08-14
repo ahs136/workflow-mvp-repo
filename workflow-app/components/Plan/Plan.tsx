@@ -538,42 +538,8 @@ export default function Plan() {
     // --- UTILITIES ---
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  // load latest events from supabase when user is available (no localStorage)
-  useEffect(() => {
-    if (!user?.id) return;
-
-    (async () => {
-      try {
-        const dbEvents = await fetchCurrentEventsFromDb();
-        // fetchCurrentEventsFromDb already maps DB rows to event shape
-        setEvents(dbEvents as any);
-      } catch (err) {
-        console.warn('Failed to load events from DB on mount', err);
-      }
-    })();
-  }, [user?.id]);
+  }
   
-
-
-
-    // load latest events from supabase when user is available (no localStorage)
-    useEffect(() => {
-      if (!user?.id) return;
-  
-      (async () => {
-        try {
-          const dbEvents = await fetchCurrentEventsFromDb();
-          // fetchCurrentEventsFromDb already maps DB rows to event shape
-          setEvents(dbEvents as any);
-        } catch (err) {
-          console.warn('Failed to load events from DB on mount', err);
-        }
-      })();
-    }, [user?.id]);
-  
-
 
   useEffect(() => {
     scrollToBottom();

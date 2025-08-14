@@ -65,6 +65,7 @@ export async function fetchMetricsFromDb(userId: string, daysAhead = 7) {
   // Map DB rows into your Event shape
   const events: Event[] = rows.map(row => ({
     id: row.id,
+    user_id: row.user_id,
     title: row.title,
     start: row.start_time,
     end: row.end_time,

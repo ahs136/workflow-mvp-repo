@@ -73,7 +73,8 @@ export default function Calendar() {
       productivityRating: 0,
       userNotes: '',
       feedbackTimestamp: '',
-    }
+    },
+    updatedAt: null as string | null,
   });
 
   // --- Effects ---
@@ -106,19 +107,19 @@ export default function Calendar() {
         end: event.end ? toDatetimeLocal(event.end as string) : '',
         description: event.extendedProps?.description || '',
         location: event.extendedProps?.location || '',
-        tag: event.tag || 'deadline',
-        color: event.color || defaultTagColors[event.tag || 'deadline'],
-        repeat: event.repeat || 'none',
-        byDay: Array.isArray(event.byDay) ? event.byDay : [],
-        reminder: event.reminder || 'none',
-        isStructural: !!event.isStructural,
-        isNonNegotiable: !!event.isNonNegotiable,
-        repeatUntil: event.repeatUntil || '',
-        createdByAI: !!event.createdByAI,
-        isCompleted: !!event.isCompleted,
-        isReviewed: event.isReviewed || false,
-        reviewData: event.reviewData,
-        updatedAt: event.updatedAt || null,
+        tag: event.extendedProps?.tag || 'deadline',
+        color: event.color || defaultTagColors[event.extendedProps?.tag || 'deadline'],
+        repeat: event.extendedProps?.repeat || 'none',
+        byDay: Array.isArray(event.extendedProps?.byDay) ? event.extendedProps?.byDay : [],
+        reminder: event.extendedProps?.reminder || 'none',
+        isStructural: !!event.extendedProps?.isStructural,
+        isNonNegotiable: !!event.extendedProps?.isNonNegotiable,
+        repeatUntil: event.extendedProps?.repeatUntil || '',
+        createdByAI: !!event.extendedProps?.createdByAI,
+        isCompleted: !!event.extendedProps?.isCompleted,
+        isReviewed: event.extendedProps?.isReviewed || false,
+        reviewData: event.extendedProps?.reviewData,
+        updatedAt: event.extendedProps?.updatedAt || null,
       });
       
       setIsFormOpen(true);
@@ -285,6 +286,7 @@ export default function Calendar() {
         userNotes: '',
         feedbackTimestamp: '',
       },
+      updatedAt: null,
     });
     setSelectedEvent(null);
     setIsFormOpen(false);
@@ -321,6 +323,7 @@ export default function Calendar() {
         userNotes: '',
         feedbackTimestamp: '',
       },
+      updatedAt: null,
     });
   
     console.log('📆 [Date Select] Prepared form for new event:', id, info);
@@ -370,6 +373,7 @@ export default function Calendar() {
         userNotes: '',
         feedbackTimestamp: '',
       },
+      updatedAt: fcEvent.extendedProps?.updatedAt || null,
     });
   
     setIsFormOpen(true);
@@ -438,7 +442,7 @@ export default function Calendar() {
   
       // Remove previous base and recurrences from events list
       const cleanedEvents = events.filter(
-        (e) => e.id !== baseId && e.groupId !== baseId
+        (e) => e.id !== baseId && e.group_id !== baseId
       );
   
       // Generate recurrences — these already have group_id = baseId
@@ -500,7 +504,7 @@ export default function Calendar() {
               repeat: formData.repeat,
               repeatUntil: normalizeTimestamp(formData.repeatUntil),
               byDay: formData.byDay,
-              group_id: e.groupId || baseId,  // ensure group_id stays intact or fallback
+              group_id: e.group_id || baseId,  // ensure group_id stays intact or fallback
             }
           : e
       );
@@ -551,7 +555,7 @@ export default function Calendar() {
       if (!selectedEvent.groupId || selectedEvent.groupId.trim() === '') {
         // Base event: delete base + recurrences
         const filtered = events.filter(
-          (e) => e.id !== selectedEvent.id && e.groupId !== selectedEvent.id
+          (e) => e.id !== selectedEvent.id && e.group_id !== selectedEvent.id
         );
         setEvents(filtered as Event[]);
         saveEvents(filtered as EventInput[]);
@@ -565,7 +569,9 @@ export default function Calendar() {
         setEvents(filtered as Event[]);
         saveEvents(filtered as EventInput[]);
   
-        await deleteEventById(selectedEvent.id);
+        if (selectedEvent.id) {
+          await deleteEventById(selectedEvent.id);
+        }
       }
   
       resetForm();
