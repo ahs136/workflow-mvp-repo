@@ -1,5 +1,9 @@
 # Welcome to the WorkFlow MVP Portfolio
 
+## Test my App!
+My MVP is finally live after 10 weeks!
+Try it here https://workflow-mvp.vercel.app/
+
 ## Project Overview
 A task management and calendar app to help users, specifically those with ADHD, organize their time and enhance their learning. Currently under active development as part of my summer 2025 coding project.
 
@@ -31,14 +35,6 @@ Planned integrations:
 ## 🧪 Status
 🟢 MVP in progress  
 🟡 AI & calendar integration started in Week 5!
-
-
-## 📸 Screenshots
-<img width="950" height="490" alt="Screenshot 2025-07-20 161324 - Copy" src="https://github.com/user-attachments/assets/7f60e75e-aee6-43a4-a197-a3a710127afb" />
-<img width="950" height="490" alt="Screenshot 2025-07-20 161018 - Copy" src="https://github.com/user-attachments/assets/0ecf7059-6569-46e3-8b27-f851a84a777c" />
-<img width="950" height="490" alt="Screenshot 2025-07-20 160959 - Copy" src="https://github.com/user-attachments/assets/cc81256b-a79d-4e88-933a-16a77a154749" />
-<img width="950" height="490" alt="Screenshot 2025-07-20 160945 - Copy" src="https://github.com/user-attachments/assets/30ecab5d-386e-41d7-9508-a3a9f352d425" />
-
 
 ## 📅 Weekly Log
 
