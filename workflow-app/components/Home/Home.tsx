@@ -16,6 +16,7 @@ export default function Home() {
   const [user, setUser] = useState<User | null>(null);
   const router = useRouter();
 
+ 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       if (!data.session?.user) {
@@ -26,33 +27,19 @@ export default function Home() {
     });
   }, []);
 
-  useEffect(() => {
-    const stored = localStorage.getItem("calendarEvents");
-    if (stored) {
-      const parsed = JSON.parse(stored).map((e: any) => ({
-        ...e,
-        start: new Date(e.start),
-        end: e.end ? new Date(e.end) : null,
-      }));
-      setEvents(parsed);
-    }
-  }, []);
+  const metrics = calculateMetrics(events);
 
   useEffect(() => {
-    async function createProfile() {
-      if (!user) return;
-      const { data } = await supabase.from('profiles').select('id').eq('id', user.id).single();
-      if (!data) {
-        await supabase.from('profiles').insert({
-          id: user.id,
-          display_name: user.user_metadata.full_name || '',
-          avatar_url: user.user_metadata.avatar_url || '',
-        });
+    supabase.auth.getSession().then(({ data }) => {
+      if (!data.session?.user) {
+        router.push("/");
+      } else {
+        setUser(data.session.user);
       }
-    }
-    createProfile();
-  }, [user]);
+    });
+  }, [router]);
   
+
 
   // #5 logic
   const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
@@ -191,54 +178,39 @@ const oldAiInsight = highestDay.productivity > 0
 
 
 // #9 logic
-const metrics = calculateMetrics(events);
-function useAiSummary(metrics: any) {
+function useAiSummary(metrics: any, userId: string) {
   const [summary, setSummary] = useState("Loading AI summary...");
 
   useEffect(() => {
-    const cacheKey = "aiSummaryCache";
-    const cacheExpiryMs = 1000 * 60 * 60; // 1 hour
+    if (!userId) return;
 
-    async function fetchSummary() {
+    async function generateSummary() {
       try {
+        // Generate new summary from API
         const res = await fetch("/api/assistant/ai-summary", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(metrics),
         });
+
         if (!res.ok) throw new Error("API error");
         const data = await res.json();
-        const now = Date.now();
-        // Save to localStorage with timestamp
-        localStorage.setItem(
-          cacheKey,
-          JSON.stringify({ summary: data.summary, timestamp: now })
-        );
-        setSummary(data.summary || "No summary available.");
+
+        const newSummary = data.summary || "No summary available.";
+        setSummary(newSummary);
       } catch (e) {
+        console.error(e);
         setSummary("Failed to load AI summary.");
       }
     }
 
-    const cached = localStorage.getItem(cacheKey);
-    if (cached) {
-      const { summary: cachedSummary, timestamp } = JSON.parse(cached);
-      const now = Date.now();
-
-      if (now - timestamp < cacheExpiryMs) {
-        // Use cached summary
-        setSummary(cachedSummary);
-        return;
-      }
-    }
-
-    // If no valid cache, fetch new summary
-    fetchSummary();
-  }, [metrics]);
+    generateSummary();
+  }, [user?.id, 3600]);
 
   return summary;
 }
-const aiSummary = useAiSummary(metrics);
+
+const aiSummary = useAiSummary(metrics, user?.id ?? '');
 
   return (
     <div className="p-6">

@@ -29,7 +29,7 @@ export default function Profile() {
         <p className="text-gray-600 mt-1">Manage your account settings and preferences</p>
       </div>
 
-      <button onClick={() => signOut(router)} className="bg-red-500 text-white px-4 py-2 rounded-md">Sign Out</button>
+      <button onClick={() => signOut(router)} className="bg-red-500 text-white px-4 py-2 rounded-md ml-5">Sign Out</button>
       <div className="grid gap-6">
         <div className="bg-gray-50 rounded-lg p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">User Information</h2>
@@ -45,20 +45,6 @@ export default function Profile() {
             <div>
               <label className="block text-sm font-medium text-gray-700">Email</label>
               <p className="text-gray-900">{user?.email}</p>
-            </div>
-          </div>
-        </div>
-        
-        <div className="bg-gray-50 rounded-lg p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Preferences</h2>
-          <div className="space-y-3">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Theme</label>
-              <p className="text-gray-900">Light</p>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Notifications</label>
-              <p className="text-gray-900">Enabled</p>
             </div>
           </div>
         </div>

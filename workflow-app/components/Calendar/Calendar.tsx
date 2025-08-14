@@ -49,7 +49,6 @@ export default function Calendar() {
   const [structuralViewOn, setStructuralViewOn] = useState(false);
   const [parseInput, setParseInput] = useState('');
   const [parsedEvent, setParsedEvent] = useState<EventInput|null>(null);
-  const STORAGE_KEY = 'calendarEvents';
   const [formData, setFormData] = useState({
     id:          nanoid(),
     user_id:     user?.id,
@@ -87,64 +86,6 @@ export default function Calendar() {
       }
     }
   }, []);
-
-  useEffect(() => {
-    async function fetchEvents() {
-      if (!user) return;
-  
-      const { data, error } = await supabase
-        .from('events')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('start_time', { ascending: true });
-  
-      if (error) {
-        console.error('Error loading events:', error);
-        return;
-      }
-  
-      const formattedEvents: EventInput[] = data.map((row: any) => ({
-        id: row.id,
-        title: row.title,
-        // protect against null end_time
-        start: row.start_time ? new Date(row.start_time) : undefined,
-        end: row.end_time ? new Date(row.end_time) : undefined,
-        backgroundColor: row.color || defaultTagColors[row.tag] || undefined,
-        textColor: '#fff',
-        extendedProps: {
-          // put all DB fields inside extendedProps in camelCase form
-          description: row.description ?? '',
-          location: row.location ?? '',
-          reminder: row.reminder ?? 'none',
-          tag: row.tag ?? 'deadline',
-          color: row.color ?? defaultTagColors[row.tag ?? 'deadline'],
-          isStructural: !!row.is_structural,
-          isNonNegotiable: !!row.is_non_negotiable,
-          repeat: row.repeat ?? 'none',
-          repeatUntil: row.repeat_until ?? null,
-          byDay: row.by_day ?? [],
-          createdByAI: !!row.created_by_ai,
-          isCompleted: !!row.is_completed,
-          isReviewed: !!row.is_reviewed,
-          reviewData: {
-            actualDurationMinutes: row.actual_duration_minutes ?? 0,
-            productivityRating: row.productivity_rating ?? 0,
-            userNotes: row.user_notes ?? '',
-            feedbackTimestamp: row.feedback_timestamp ?? null,
-          },
-          createdAt: row.created_at ?? null,
-          updatedAt: row.updated_at ?? null,
-          // include groupId if you stored it in DB (if not, ignore)
-          groupId: row.group_id ?? null,
-        },
-      }));
-  
-      setEvents(formattedEvents as Event[]);
-    }
-  
-    fetchEvents();
-  }, [user]);
-  
 
  useEffect(() => {
     if (parsedEvent) {
@@ -446,8 +387,8 @@ export default function Calendar() {
       color:          info.event.textColor || '#fff',
       extendedProps:  { ...info.event.extendedProps },
     };
-    const updatedList = events.map((e) => (e.id === updated.id ? updated : e));
-    setEvents(updatedList as Event[]);
+
+    setEvents(events.map((e) => (e.id === updated.id ? updated : e)) as Event[]);
     await saveEvent(updated);
     scheduleReminder(updated);
   };

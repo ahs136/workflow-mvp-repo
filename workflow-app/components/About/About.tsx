@@ -28,13 +28,12 @@ export default function About() {
   
     const errors = [];
 
-      
-    const { error: usageError } = await supabase.from('usage').delete().eq('user_id', user.id);
-    if (usageError) errors.push('usage');
-
-    const { error: chatHistoryError } = await supabase.from('chats').delete().eq('user_id', user.id);
+    
+    const { error: chatHistoryError } = await supabase.from('chat_messages').delete().eq('user_id', user.id);
     if (chatHistoryError) errors.push('chat history');
 
+    const { error: chatSessionsError } = await supabase.from('chat_sessions').delete().eq('user_id', user.id);
+    if (chatSessionsError) errors.push('chat sessions');
   
     const { error: eventsError } = await supabase.from('events').delete().eq('user_id', user.id);
     if (eventsError) errors.push('events');

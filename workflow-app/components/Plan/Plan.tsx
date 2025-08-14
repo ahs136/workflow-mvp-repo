@@ -69,46 +69,7 @@ export default function Plan() {
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const currentSession = sessions.find(s => s.id === currentSessionId) || null;
   
-  // inside your Plan component, add helper
-  async function fetchCurrentEventsFromDb() {
-    if (!user?.id) return [];
-
-    const { data, error } = await supabase
-      .from('events')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('start_time', { ascending: true });
-
-    if (error) {
-      console.error('Failed to fetch events from DB (Plan):', error);
-      return [];
-    }
-
-    // Map DB rows -> frontend event shape expected by prompts
-    return (data || []).map((r: any) => ({
-      id: r.id,
-      groupId: r.group_id ?? null,
-      title: r.title,
-      start: r.start_time,
-      end: r.end_time,
-      tag: r.tag,
-      color: r.color,
-      extendedProps: {
-        description: r.description,
-        location: r.location,
-        reminder: r.reminder,
-        tag: r.tag,
-        reviewData: {
-          actualDurationMinutes: r.actual_duration_minutes,
-          productivityRating: r.productivity_rating,
-          userNotes: r.user_notes,
-        },
-        createdAt: r.created_at,
-        updatedAt: r.updated_at,
-      }
-    }));
-  }
-
+  console.log("Events from context:", events);
 
   // --- Supabase helpers (mirroring Calendar.tsx) ---
   function sanitizeTimestamp(value: any): string | null {
@@ -574,7 +535,7 @@ export default function Plan() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // --- UTILITIES ---
+    // --- UTILITIES ---
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -612,6 +573,7 @@ export default function Plan() {
       })();
     }, [user?.id]);
   
+
 
   useEffect(() => {
     scrollToBottom();
@@ -751,7 +713,7 @@ export default function Plan() {
     }
 
     // Fetch authoritative events from DB right before calling the AI
-    const latestEvents = await fetchCurrentEventsFromDb();
+    const latestEvents = events;
     // Add user message to session & persist
     const userMessage: Message = {
       id: nanoid(),
@@ -760,12 +722,22 @@ export default function Plan() {
       timestamp: new Date().toISOString(),
     };
   
+    const currentSession = sessions.find(s => s.id === currentSessionId!);
+    const isFirstUserMessage = currentSession && 
+      currentSession.messages.filter(m => m.role === 'user').length === 0 &&
+      currentSession.title.startsWith('New Chat');
+  
     setSessions(prev => (
       prev.map(s => s.id === currentSessionId! ? { ...s, messages: [...s.messages, userMessage] } : s)
     ));
   
     // persist immediately (non-blocking)
     insertMessageToDb(currentSessionId!, userMessage).catch(err => console.error('Failed to insert user message', err));
+    
+    // Update session title if this is the first user message
+    if (isFirstUserMessage) {
+      updateSessionTitle(currentSessionId!, userMessage.content);
+    }
   
     // clear input (optional, but UX-friendly)
     setInputValue('');
@@ -832,8 +804,33 @@ export default function Plan() {
     }
   };
   
-
-
+  // Helper function to update session title based on first user message
+  const updateSessionTitle = async (sessionId: string, firstUserMessage: string) => {
+    if (!user?.id) return;
+    
+    const truncatedTitle = firstUserMessage.length > 50 
+      ? firstUserMessage.substring(0, 50) + '...'
+      : firstUserMessage;
+    
+    // Update in database
+    const { error } = await supabase
+      .from('chat_sessions')
+      .update({ title: truncatedTitle })
+      .eq('id', sessionId)
+      .eq('user_id', user.id);
+    
+    if (error) {
+      console.error('Error updating session title:', error);
+      return;
+    }
+    
+    // Update in local state
+    setSessions(prev => prev.map(session => 
+      session.id === sessionId 
+        ? { ...session, title: truncatedTitle }
+        : session
+    ));
+  };
   return (
     <div className="flex h-full">
       {/* Sidebar */}

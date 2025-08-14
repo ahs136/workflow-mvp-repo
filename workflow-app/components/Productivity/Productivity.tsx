@@ -1,17 +1,44 @@
 'use client';
 
-import { useEventContext } from '@/app/context/EventContext';
-import { useState } from 'react';
+import { Event, useEventContext } from '@/app/context/EventContext';
+import { useState, useEffect } from 'react';
+import { supabase } from "@/lib/utils/supabaseClient";
+import { User } from "@supabase/supabase-js";
+import { useRouter } from "next/navigation";
 
 export default function Productivity() {
   const { events, setEvents } = useEventContext();
   const now = new Date();
+  const [user, setUser] = useState<User | null>(null);
+  const router = useRouter();
 
-  // Step 1: Filter eligible events
+  const defaultTagColors: Record<string, string> = {
+    deadline: '#dc2626',
+    meeting: '#8b5cf6',
+    class:   '#1d4ed8',
+    focus:   '#ede8d0',
+    workout: '#03c04a',
+    social:  '#ff8da1',
+    personal:'#6b7280',
+  };
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      if (!data.session?.user) {
+        router.push('/');
+      } else {
+        setUser(data.session?.user ?? null);
+      }
+    });
+  }, []);
+
+
   const eligibleEvents = events.filter(
     (e) =>
       e.extendedProps?.isCompleted &&
-      !e.extendedProps?.isReviewed
+      !e.extendedProps?.isReviewed &&
+      e.extendedProps?.tag !== 'social' &&
+      e.extendedProps?.tag !== 'class'
   );
 
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -81,8 +108,25 @@ export default function Productivity() {
         : event
     );
 
-    setEvents(updatedEvents);
-    localStorage.setItem('calendarEvents', JSON.stringify(updatedEvents));
+    setEvents(updatedEvents as Event[]);
+
+    // update metrics
+    async function updateMetrics() {
+    const { data, error } = await supabase
+      .from('events')
+      .update({
+        is_completed: true,
+        is_reviewed: true,
+        actual_duration_minutes: feedback.actualDurationMinutes,
+        productivity_rating: feedback.productivityRating,
+        user_notes: feedback.userNotes,
+      })
+      .eq('id', currentEvent.id);
+    if (error) {
+        console.error('Error updating event:', error);
+      }
+    }
+    updateMetrics();
     setCurrentIndex((prev) => prev + 1);
   };
 

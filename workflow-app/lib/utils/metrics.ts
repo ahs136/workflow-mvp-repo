@@ -1,15 +1,15 @@
-// /lib/metrics.ts
-
 import { Event } from "@/app/context/EventContext";
+import { supabase } from "@/lib/utils/supabaseClient";
 
 interface Metrics {
   totalEvents: number;
   completedEvents: number;
-  completionRate: number; // Percentage 0–100
-  currentStreak: number;   // Days with consecutive completed events
-  upcomingDeadlines: number; // Count of deadline events in next X days
+  completionRate: number;
+  currentStreak: number;
+  upcomingDeadlines: number;
 }
 
+// Your existing pure function stays the same
 export function calculateMetrics(events: Event[], daysAhead = 7): Metrics {
   const now = new Date();
 
@@ -17,7 +17,6 @@ export function calculateMetrics(events: Event[], daysAhead = 7): Metrics {
   const completedEvents = events.filter(e => e.extendedProps?.isCompleted).length;
   const completionRate = totalEvents ? (completedEvents / totalEvents) * 100 : 0;
 
-  // Calculate current streak of days with completed events
   const completedDatesSet = new Set(
     events
       .filter(e => e.extendedProps?.isCompleted)
@@ -35,7 +34,6 @@ export function calculateMetrics(events: Event[], daysAhead = 7): Metrics {
     }
   }
 
-  // Count deadlines within next `daysAhead` days
   const upcomingDeadlines = events.filter(e => {
     const tag = e.tag || e.extendedProps?.tag || "";
     if (tag.toLowerCase() !== "deadline") return false;
@@ -51,4 +49,32 @@ export function calculateMetrics(events: Event[], daysAhead = 7): Metrics {
     currentStreak: streak,
     upcomingDeadlines,
   };
+}
+
+// NEW async helper to pull from DB
+export async function fetchMetricsFromDb(userId: string, daysAhead = 7) {
+  if (!userId) throw new Error("User ID is required to fetch metrics");
+
+  const { data: rows, error } = await supabase
+    .from("events")
+    .select("*")
+    .eq("user_id", userId);
+
+  if (error) throw error;
+
+  // Map DB rows into your Event shape
+  const events: Event[] = rows.map(row => ({
+    id: row.id,
+    title: row.title,
+    start: row.start_time,
+    end: row.end_time,
+    tag: row.tag,
+    extendedProps: {
+      isCompleted: row.is_completed,
+      tag: row.tag,
+      ...row.extended_props,
+    },
+  }));
+
+  return calculateMetrics(events, daysAhead);
 }

@@ -4,6 +4,8 @@ export function generateParseEventPrompt(userInput: string, now: string, type: s
     return `
 Parse the following ${type} description into a JSON object with these exact fields:
 
+RESPOND WITH ONLY JSON, NO UNECESSARY PARANTHESIS OR COMMENTS.
+
 {
   "id": string,                 // required — a unique non-empty id (e.g. "e0c9s2a1" or "9f87ghk2"), do not leave id blank or null.
   "title": string,              // required — A short, clear title (do not include any date/time here)
