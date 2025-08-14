@@ -25,11 +25,9 @@ This project leverages a modern web development stack to ensure scalability, mai
 - **TypeScript** – Type-safe JavaScript for improved reliability
 - **Tailwind CSS** – Utility-first CSS framework for rapid UI development
 - **Node.js & npm** – JavaScript runtime and package management
+- **Supabase** - database compatible with next.js
+- **Open AI API** - for parsing events and chatbot
 - **Git & GitHub** – Version control and collaboration
-
-Planned integrations:
-- **React Full Calendar** (complete)
-- **AI features** (coming soon)
 
 
 ## 🧪 Status
