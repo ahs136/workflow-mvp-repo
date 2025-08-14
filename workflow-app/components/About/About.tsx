@@ -317,7 +317,7 @@ export default function About() {
                 LinkedIn
                 </a>
                 <a
-                href="" // Replace with your portfolio link
+                href="https://sites.google.com/view/alisiddiqui-portfolio/home"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="px-5 py-2 rounded-xl bg-[#1e293b] text-white font-medium hover:bg-[#2e384a] transition-all duration-200 shadow-md"
